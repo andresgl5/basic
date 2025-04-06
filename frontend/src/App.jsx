@@ -1,70 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState } from 'react';
+import './App.css';
 
 function App() {
-    const [message, setMessage] = useState("");
-    const [counter, setCounter] = useState(0);
-    const [text, setText] = useState("");
-    const [responseText, setResponseText] = useState("");
+  const [razonSocial, setRazonSocial] = useState('');
+  const [clientes, setClientes] = useState([]);  // Ahora es un array de clientes
+  const [error, setError] = useState(null);
 
-    // Obtener mensaje inicial de FastAPI
-    useEffect(() => {
-        fetch("http://localhost:8000/")
-            .then(response => response.json())
-            .then(data => setMessage(data.message));
-    }, []);
+  const buscarCliente = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/buscar/?razon_social=${encodeURIComponent(razonSocial)}`);
+      if (!res.ok) throw new Error("No se encontró el cliente.");
+      const data = await res.json();
+      setClientes(data.clientes || []);  // Guardar la lista de clientes
+      setError(null);
+    } catch (err) {
+      setClientes([]);  // Limpiar los resultados
+      setError(err.message);
+    }
+  };
 
-    // Obtener contador desde el backend
-    useEffect(() => {
-        fetch("http://localhost:8000/counter")
-            .then(response => response.json())
-            .then(data => setCounter(data.counter));
-    }, []);
+  return (
+    <div className="container">
+      <h1>Buscar Cliente</h1>
+      <div className="search-bar">
+        <input
+          type="text"
+          value={razonSocial}
+          onChange={(e) => setRazonSocial(e.target.value)}
+          placeholder="Introduce la razón social"
+        />
+        <button onClick={buscarCliente}>Buscar</button>
+      </div>
 
-    // Función para incrementar el contador
-    const handleIncrement = () => {
-        fetch("http://localhost:8000/increment", {
-            method: "POST"
-        })
-        .then(response => response.json())
-        .then(data => setCounter(data.counter));
-    };
-
-    // Función para enviar texto al backend y recibir respuesta
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        fetch("http://localhost:8000/text", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text })
-        })
-        .then(response => response.json())
-        .then(data => setResponseText(data.storedText));
-    };
-
-    return (
-        <div style={{ padding: "20px", fontFamily: "Arial" }}>
-            <h1>{message || "HOLA HOLA HOLA HOLA HOLA"}</h1>
-
-            {/* Contador */}
-            <h2>Contador: {counter}</h2>
-            <button onClick={handleIncrement}>Incrementar</button>
-
-            {/* Formulario para enviar texto */}
-            <h2>Formulario</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Escribe algo..."
-                />
-                <button type="submit">Enviar</button>
-            </form>
-            <p>Respuesta del backend: {responseText}</p>
+      {/* Mostrar resultados */}
+      {clientes.length > 0 ? (
+        <div className="results">
+          <h3>Resultados encontrados:</h3>
+          <ul>
+            {clientes.map((cliente, index) => (
+              <li key={index} className="result-item">
+                <p><strong>Razón Social:</strong> {cliente.razon_social}</p>
+                <p><strong>Dirección:</strong> {cliente.direccion}</p>
+              </li>
+            ))}
+          </ul>
         </div>
-    );
+      ) : (
+        razonSocial && <p className="no-results">No se encontraron clientes.</p>
+      )}
+
+      {/* Mensaje de error */}
+      {error && <p className="error-message">{error}</p>}
+    </div>
+  );
 }
 
 export default App;

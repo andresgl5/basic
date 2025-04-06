@@ -1,36 +1,38 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 
 app = FastAPI()
 
-# Variables globales para el contador y el texto
-counter = 0
-stored_text = ""
+# CORS: permitir acceso desde el frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # puedes restringir esto si prefieres
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Modelo de datos para recibir el texto
-class TextInput(BaseModel):
-    text: str
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "data.sqlite")
 
-# Endpoint para obtener el mensaje de bienvenida
-@app.get("/")
-def read_root():
-    return {"message": "¡Hola, esto es FastAPI en Docker! 🚀"}
+@app.get("/buscar/")
+def buscar_cliente(razon_social: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
 
-# Endpoint para obtener el contador
-@app.get("/counter")
-def get_counter():
-    return {"counter": counter}
+        # Buscar todos los clientes cuyo nombre contenga el término de búsqueda
+        cursor.execute("SELECT RAZON_SOCIAL, DIRECCION FROM CLIENTE WHERE LOWER(RAZON_SOCIAL) LIKE LOWER(?)", 
+                       ('%' + razon_social + '%',))
+        results = cursor.fetchall()
+        conn.close()
 
-# Endpoint para incrementar el contador
-@app.post("/increment")
-def increment_counter():
-    global counter
-    counter += 1
-    return {"counter": counter}
-
-# Endpoint para recibir y almacenar texto
-@app.post("/text")
-def store_text(data: TextInput):
-    global stored_text
-    stored_text = data.text
-    return {"storedText": stored_text}
+        # Si hay resultados, los devolvemos
+        if results:
+            return {"clientes": [{"razon_social": row[0], "direccion": row[1]} for row in results]}
+        else:
+            raise HTTPException(status_code=404, detail="Clientes no encontrados")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
