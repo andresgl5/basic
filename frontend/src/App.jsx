@@ -14,7 +14,7 @@ function App() {
       setClientes(data.clientes || []);  // Guardar la lista de clientes
       setError(null);
     } catch (err) {
-      setClientes([]);  // Limpiar los resultados
+      setClientes([]);  // Limpiar los resultados aa
       setError(err.message);
     }
   };
