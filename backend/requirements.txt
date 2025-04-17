@@ -1,3 +1,5 @@
 fastapi
 uvicorn
 pydantic
+python-jose[cryptography]   # para manejar JWT
+passlib[bcrypt]             # para hashear/verificar contraseñas
