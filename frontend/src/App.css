@@ -91,3 +91,79 @@ ul {
   color: #dc3545;
   font-size: 1.1rem;
 }
+
+.top-bar {
+  position: relative;
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-greeting {
+  margin-right: 20px;
+  font-weight: bold;
+  color: #333;
+  font-size: 1rem;
+}
+
+.logout-button {
+  background-color: #ff5c5c;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #ff1f1f;
+}
+
+.gestion-usuarios {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e8f0fe;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.gestion-usuarios input, .gestion-usuarios select {
+  margin: 5px 0;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gestion-usuarios button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.gestion-usuarios button:hover {
+  background-color: #45a049;
+}
+
+.gestion-usuarios table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.gestion-usuarios th, .gestion-usuarios td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.gestion-usuarios th {
+  background-color: #4CAF50;
+  color: white;
+}

@@ -5,7 +5,10 @@ import sqlite3
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
-from fastapi import Request
+from fastapi import Path
+from fastapi import Depends, Request
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 
 SECRET_KEY = "clave-secreta-super-segura"
 ALGORITHM = "HS256"
@@ -24,6 +27,23 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  # Lo usamos solo para leer tokens
+
+# Función para decodificar el token
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        rol: str = payload.get("rol")
+        if email is None or rol is None:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        return {"email": email, "rol": rol}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+def only_admin(current_user: dict = Depends(get_current_user)):
+    if current_user["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="No tienes permiso para realizar esta acción")
 
 app = FastAPI()
 
@@ -73,24 +93,121 @@ async def login(request: Request):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT hash_password FROM usuarios WHERE EMAIL = ?", (email,))
+        cursor.execute("SELECT hash_password, rol FROM usuarios WHERE email = ?", (email,))
         result = cursor.fetchone()
         conn.close()
 
         if not result:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
-        hashed_password = result[0]
+        hashed_password, rol = result
 
         if not verify_password(password, hashed_password):
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
         access_token = create_access_token(
-            data={"sub": email},
+            data={"sub": email, "rol": rol},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
         return {"access_token": access_token, "token_type": "bearer"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/register")
+async def register(request: Request, current_user: dict = Depends(only_admin)):
+    data = await request.json()
+    email = data.get("email")
+    password = data.get("password")
+    rol = data.get("rol", "tecnico")
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email y contraseña son obligatorios")
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+        if cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=400, detail="El usuario ya existe")
+
+        hashed_password = pwd_context.hash(password)
+
+        cursor.execute("INSERT INTO usuarios (email, hash_password, rol) VALUES (?, ?, ?)", 
+                       (email, hashed_password, rol))
+        conn.commit()
+        conn.close()
+
+        return {"mensaje": "Usuario creado exitosamente"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/usuarios")
+def get_usuarios(current_user: dict = Depends(only_admin)):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, email, rol FROM usuarios")
+        usuarios = cursor.fetchall()
+        conn.close()
+
+        usuarios_list = [
+            {"id": row[0], "email": row[1], "rol": row[2]}
+            for row in usuarios
+        ]
+
+        return {"usuarios": usuarios_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/usuarios/{usuario_id}")
+def eliminar_usuario(usuario_id: int = Path(..., description="ID del usuario a eliminar"), current_user: dict = Depends(only_admin)):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+        conn.commit()
+        conn.close()
+
+        return {"mensaje": "Usuario eliminado exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/usuarios/{usuario_id}")
+async def actualizar_usuario(usuario_id: int, request: Request, current_user: dict = Depends(only_admin)):
+    data = await request.json()
+    email = data.get("email")
+    password = data.get("password")
+    rol = data.get("rol")
+
+    if not email or not rol:
+        raise HTTPException(status_code=400, detail="Email y rol son obligatorios")
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if password:
+            hashed_password = pwd_context.hash(password)
+            cursor.execute(
+                "UPDATE usuarios SET email = ?, hash_password = ?, rol = ? WHERE id = ?",
+                (email, hashed_password, rol, usuario_id)
+            )
+        else:
+            cursor.execute(
+                "UPDATE usuarios SET email = ?, rol = ? WHERE id = ?",
+                (email, rol, usuario_id)
+            )
+
+        conn.commit()
+        conn.close()
+
+        return {"mensaje": "Usuario actualizado exitosamente"}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

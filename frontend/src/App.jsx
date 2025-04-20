@@ -1,17 +1,25 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import Login from './Login';
+import DashboardAdmin from './DashboardAdmin';
+import DashboardTecnico from './DashboardTecnico';
 
 function App() {
   const [razonSocial, setRazonSocial] = useState('');
   const [clientes, setClientes] = useState([]);
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
+
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setUserEmail(payload.sub);
+      setUserRole(payload.rol);
     }
   }, []);
 
@@ -43,7 +51,16 @@ function App() {
 
   return (
     <div className="container">
-      <button onClick={handleLogout}>Cerrar sesión</button>
+      <div className="top-bar" >
+        <span className="user-greeting">Hola, {userEmail.split('@')[0]}</span>
+        <button className="logout-button" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
+      </div>
+
+      {userRole === 'administrador' && <DashboardAdmin />}
+      {userRole === 'tecnico' && <DashboardTecnico />}
+
       <h1>Buscar Cliente</h1>
       <div className="search-bar">
         <input
