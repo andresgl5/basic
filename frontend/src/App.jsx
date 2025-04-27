@@ -46,7 +46,11 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
+    return <Login onLogin={(payload) => {
+      setIsAuthenticated(true);
+      setUserEmail(payload.sub);
+      setUserRole(payload.rol);
+    }} />;
   }
 
   return (

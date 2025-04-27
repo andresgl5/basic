@@ -167,3 +167,83 @@ ul {
   background-color: #4CAF50;
   color: white;
 }
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.login-form {
+  background: white;
+  padding: 40px 30px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form input {
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.login-form button {
+  padding: 10px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-form button:hover {
+  background-color: #45a049;
+}
+
+.error-message {
+  margin-top: 10px;
+  color: red;
+  font-weight: bold;
+}
+.buscar-clientes input {
+  margin: 5px 0;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.buscar-clientes button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.buscar-clientes button:hover {
+  background-color: #1976D2;
+}
+
+.buscar-clientes ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.buscar-clientes li {
+  margin-bottom: 10px;
+  background: #f1f1f1;
+  padding: 10px;
+  border-radius: 5px;
+}
