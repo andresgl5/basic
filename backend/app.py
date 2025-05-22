@@ -42,7 +42,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Token inválido")
 
 def only_admin(current_user: dict = Depends(get_current_user)):
-    if current_user["rol"] != "administrador":
+    if current_user["rol"] != 3:
         raise HTTPException(status_code=403, detail="No tienes permiso para realizar esta acción")
 
 app = FastAPI()
@@ -57,19 +57,20 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data.sqlite")
+DB_DATA_PATH = os.path.join(BASE_DIR, "data.sqlite")
+DB_CREDENTIALS_PATH = os.path.join(BASE_DIR, "credenciales.sqlite")
 
 @app.get("/buscar/")
 def buscar_cliente(razon_social: str):
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        conn_data = sqlite3.connect(DB_DATA_PATH)
+        cursor = conn_data.cursor()
 
         # Buscar todos los clientes cuyo nombre contenga el término de búsqueda
         cursor.execute("SELECT RAZON_SOCIAL, DIRECCION FROM CLIENTE WHERE LOWER(RAZON_SOCIAL) LIKE LOWER(?)", 
                        ('%' + razon_social + '%',))
         results = cursor.fetchall()
-        conn.close()
+        conn_data.close()
 
         # Si hay resultados, los devolvemos
         if results:
@@ -90,12 +91,12 @@ async def login(request: Request):
         raise HTTPException(status_code=400, detail="Faltan campos")
 
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        conn_credentials = sqlite3.connect(DB_CREDENTIALS_PATH)
+        cursor = conn_credentials.cursor()
 
-        cursor.execute("SELECT hash_password, rol FROM usuarios WHERE email = ?", (email,))
+        cursor.execute("SELECT password, rol FROM CREDENCIALES WHERE email = ?", (email,))
         result = cursor.fetchone()
-        conn.close()
+        conn_credentials.close()
 
         if not result:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
@@ -106,7 +107,7 @@ async def login(request: Request):
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
         access_token = create_access_token(
-            data={"sub": email, "rol": rol},
+            data={"sub": email, "rol": str(rol)},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
@@ -126,20 +127,20 @@ async def register(request: Request, current_user: dict = Depends(only_admin)):
         raise HTTPException(status_code=400, detail="Email y contraseña son obligatorios")
 
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        conn_data = sqlite3.connect(DB_DATA_PATH)
+        cursor = conn_data.cursor()
 
         cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
         if cursor.fetchone():
-            conn.close()
+            conn_data.close()
             raise HTTPException(status_code=400, detail="El usuario ya existe")
 
         hashed_password = pwd_context.hash(password)
 
         cursor.execute("INSERT INTO usuarios (email, hash_password, rol) VALUES (?, ?, ?)", 
                        (email, hashed_password, rol))
-        conn.commit()
-        conn.close()
+        conn_data.commit()
+        conn_data.close()
 
         return {"mensaje": "Usuario creado exitosamente"}
 
@@ -149,11 +150,11 @@ async def register(request: Request, current_user: dict = Depends(only_admin)):
 @app.get("/usuarios")
 def get_usuarios(current_user: dict = Depends(only_admin)):
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, email, rol FROM usuarios")
+        conn_data = sqlite3.connect(DB_DATA_PATH)
+        cursor = conn_data.cursor()
+        cursor.execute("SELECT id, email, rol FROM COMERCIALES")
         usuarios = cursor.fetchall()
-        conn.close()
+        conn_data.close()
 
         usuarios_list = [
             {"id": row[0], "email": row[1], "rol": row[2]}
@@ -168,11 +169,11 @@ def get_usuarios(current_user: dict = Depends(only_admin)):
 @app.delete("/usuarios/{usuario_id}")
 def eliminar_usuario(usuario_id: int = Path(..., description="ID del usuario a eliminar"), current_user: dict = Depends(only_admin)):
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        conn_data = sqlite3.connect(DB_DATA_PATH)
+        cursor = conn_data.cursor()
         cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
-        conn.commit()
-        conn.close()
+        conn_data.commit()
+        conn_data.close()
 
         return {"mensaje": "Usuario eliminado exitosamente"}
     except Exception as e:
@@ -189,8 +190,8 @@ async def actualizar_usuario(usuario_id: int, request: Request, current_user: di
         raise HTTPException(status_code=400, detail="Email y rol son obligatorios")
 
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        conn_data = sqlite3.connect(DB_DATA_PATH)
+        cursor = conn_data.cursor()
 
         if password:
             hashed_password = pwd_context.hash(password)
@@ -204,8 +205,8 @@ async def actualizar_usuario(usuario_id: int, request: Request, current_user: di
                 (email, rol, usuario_id)
             )
 
-        conn.commit()
-        conn.close()
+        conn_data.commit()
+        conn_data.close()
 
         return {"mensaje": "Usuario actualizado exitosamente"}
 

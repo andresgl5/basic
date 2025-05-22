@@ -62,8 +62,8 @@ function App() {
         </button>
       </div>
 
-      {userRole === 'administrador' && <DashboardAdmin />}
-      {userRole === 'tecnico' && <DashboardTecnico />}
+      {userRole === '3' && <DashboardAdmin />}
+      {userRole === '1' && <DashboardTecnico />}
 
       <h1>Buscar Cliente</h1>
       <div className="search-bar">
