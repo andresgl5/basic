@@ -70,7 +70,7 @@ function App() {
         <button className="logout-button" onClick={handleLogout}>Cerrar sesión</button>
       </div>
 
-      {userRole === "3" ? <DashboardAdmin /> : <DashboardTecnico />}
+      {parseInt(userRole) === 2 ? <DashboardAdmin /> : <DashboardTecnico />}
     </div>
   );
 }

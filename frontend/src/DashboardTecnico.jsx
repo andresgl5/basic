@@ -52,7 +52,7 @@ function DashboardTecnico() {
       <h2 className="dashboard-title">Panel de Técnico</h2>
       <p>Bienvenido técnico. Aquí puedes buscar clientes y ver los proyectos disponibles.</p>
 
-      <button onClick={() => setMostrarBuscarClientes(!mostrarBuscarClientes)}>
+      <button className="toggle-button" onClick={() => setMostrarBuscarClientes(!mostrarBuscarClientes)}>
         {mostrarBuscarClientes ? "Ocultar Buscar Clientes" : "Buscar Clientes"}
       </button>
 
