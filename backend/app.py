@@ -231,7 +231,7 @@ async def inicio_registro(request: Request):
         raise HTTPException(status_code=403, detail="Email no autorizado")
     conn.close()
 
-    # ⚠️ Verificar que NO esté ya en la tabla CREDENCIALES
+    # Verificar que NO esté ya en la tabla CREDENCIALES
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM CREDENCIALES WHERE email = ?", (email,))
@@ -240,7 +240,7 @@ async def inicio_registro(request: Request):
         raise HTTPException(status_code=409, detail="Este email ya está registrado")
     conn.close()
 
-    # Continuar generando el código
+   
     codigo = generar_codigo()
     print(f"[DEBUG] Código para {email}: {codigo}")
     
@@ -284,20 +284,19 @@ async def verificar_codigo(request: Request):
         conn.close()
         raise HTTPException(status_code=403, detail="Código incorrecto")
 
-    # Generar hash de la contraseña
+    
     hashed = pwd_context.hash(password)
 
-    # ✅ Generar secreto TOTP
+    # Generar secreto TOTP
     otp_secret = pyotp.random_base32()
     otp_uri = pyotp.totp.TOTP(otp_secret).provisioning_uri(name=email, issuer_name="MiAppSegura")
 
-    # ✅ Generar QR y convertir a base64
+    # Generar QR y convertir a base64
     qr_img = qrcode.make(otp_uri)
     buffer = BytesIO()
     qr_img.save(buffer, format="PNG")
     qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    # ✅ Crear tabla si no existe y guardar usuario
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS CREDENCIALES (
             email TEXT PRIMARY KEY,
@@ -325,7 +324,6 @@ async def inicio_recuperacion(request: Request):
     if not email:
         raise HTTPException(status_code=400, detail="Email requerido")
 
-    # Verificar que el usuario exista
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM CREDENCIALES WHERE email = ?", (email,))
@@ -369,14 +367,12 @@ async def verificar_recuperacion(request: Request):
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
 
-    # Verificar código
     cursor.execute("SELECT codigo FROM codigos_recuperacion WHERE email = ?", (email,))
     row = cursor.fetchone()
     if not row or row[0] != codigo:
         conn.close()
         raise HTTPException(status_code=403, detail="Código incorrecto")
 
-    # Obtener contraseñas antiguas
     cursor.execute("""
         SELECT PASSWORD, PASSWORD1, PASSWORD2, PASSWORD3, PASSWORD4, PASSWORD5
         FROM CREDENCIALES WHERE email = ?

@@ -7,6 +7,9 @@ function DashboardTecnico() {
   const [error, setError] = useState(null);
   const [proyectos, setProyectos] = useState([]);
   const [mostrarProyectos, setMostrarProyectos] = useState(false);
+  const [filtroDireccion, setFiltroDireccion] = useState("");
+  const [filtroProyecto, setFiltroProyecto] = useState("");
+  const [filtroNivel, setFiltroNivel] = useState("");
 
 
   const handleBuscarClientes = async () => {
@@ -47,7 +50,7 @@ function DashboardTecnico() {
   return (
     <div className="dashboard-container">
       <h2 className="dashboard-title">Panel de Técnico</h2>
-      <p>Bienvenido técnico. Aquí puedes buscar clientes y registrar trabajos.</p>
+      <p>Bienvenido técnico. Aquí puedes buscar clientes y ver los proyectos disponibles.</p>
 
       <button onClick={() => setMostrarBuscarClientes(!mostrarBuscarClientes)}>
         {mostrarBuscarClientes ? "Ocultar Buscar Clientes" : "Buscar Clientes"}
@@ -98,16 +101,42 @@ function DashboardTecnico() {
 
       {error && <p className="error-message">{error}</p>}
 
-      {mostrarProyectos && proyectos.length > 0 && (
+      
+      {mostrarProyectos && (
         <div className="project-list">
-          <h3>Proyectos visibles:</h3>
-          <ul>
-            {proyectos.map((p, idx) => (
-              <li key={idx}>
-                <strong>{p.proyecto}</strong> — {p.direccion}  
-                <span style={{ color: "#888" }}> (Nivel: {p.nivel_seguridad})</span>
-              </li>
-            ))}
+          <h3>Proyectos disponibles</h3>
+          <input
+            type="text"
+            placeholder="Proyecto"
+            value={filtroProyecto}
+            onChange={(e) => setFiltroProyecto(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <input
+            type="text"
+            placeholder="Dirección"
+            value={filtroDireccion}
+            onChange={(e) => setFiltroDireccion(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <select value={filtroNivel} onChange={(e) => setFiltroNivel(e.target.value)}>
+            <option value="">Todos los niveles</option>
+            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>Nivel {n}</option>)}
+          </select>
+
+          <ul style={{ marginTop: "1rem" }}>
+            {proyectos
+              .filter(
+                (p) =>
+                  p.proyecto.toLowerCase().includes(filtroProyecto.toLowerCase()) &&
+                  p.direccion.toLowerCase().includes(filtroDireccion.toLowerCase()) &&
+                  (filtroNivel === "" || String(p.nivel_seguridad) === filtroNivel)
+              )
+              .map((p, idx) => (
+                <li key={idx}>
+                  <strong>{p.proyecto}</strong> — {p.direccion} <span style={{ color: "#888" }}>(Nivel: {p.nivel_seguridad})</span>
+                </li>
+              ))}
           </ul>
         </div>
       )}

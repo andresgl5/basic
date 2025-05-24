@@ -79,7 +79,7 @@ function Registro({ onRegistroExitoso, onVolverLogin }) {
   
       const data = await res.json();
       setMensaje(data.mensaje);
-      setQrBase64(data.qr_base64); // ✅ Guardar QR base64 para mostrar
+      setQrBase64(data.qr_base64); // Guardar QR base64 para mostrar
     } catch (err) {
       setMensaje(err.message);
     }
