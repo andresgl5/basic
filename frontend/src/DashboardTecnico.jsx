@@ -20,8 +20,8 @@ function DashboardTecnico() {
   };
 
   return (
-    <div>
-      <h2>Panel de Técnico</h2>
+    <div className="dashboard-container">
+      <h2 className="dashboard-title">Panel de Técnico</h2>
       <p>Bienvenido técnico. Aquí puedes buscar clientes y registrar trabajos.</p>
 
       <button onClick={() => setMostrarBuscarClientes(!mostrarBuscarClientes)}>

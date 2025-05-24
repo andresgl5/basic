@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./App.css";
 import Login from "./Login";
 import Registro from "./Registro";
 import Recuperar from "./Recuperar";
@@ -63,10 +64,10 @@ function App() {
   }
 
   return (
-    <div className="App">
+    <div className="container">
       <div className="top-bar">
-        <span>Hola, {userEmail.split("@")[0]}</span>
-        <button onClick={handleLogout}>Cerrar sesión</button>
+        <span className="user-greeting">Hola, {userEmail.split('@')[0]}</span>
+        <button className="logout-button" onClick={handleLogout}>Cerrar sesión</button>
       </div>
 
       {userRole === "3" ? <DashboardAdmin /> : <DashboardTecnico />}

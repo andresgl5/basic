@@ -16,8 +16,8 @@ function DashboardAdmin() {
 
   
   return (
-    <div>
-      <h2>Panel de Administración</h2>
+    <div className="dashboard-container">
+      <h2 className="dashboard-title">Panel de Administración</h2>
       <p>Bienvenido administrador. Aquí puedes gestionar usuarios, ver reportes, etc.</p>
 
       
