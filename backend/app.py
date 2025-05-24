@@ -301,3 +301,68 @@ async def verificar_codigo(request: Request):
         "qr_base64": qr_base64
     }
 
+@app.post("/recuperar/inicio")
+async def inicio_recuperacion(request: Request):
+    data = await request.json()
+    email = data.get("email")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email requerido")
+
+    # Verificar que el usuario exista
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM CREDENCIALES WHERE email = ?", (email,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    conn.close()
+
+    codigo = generar_codigo()
+
+    print(f"[RECUPERACIÓN] Código para {email}: {codigo}")  # Para desarrollo
+
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS codigos_recuperacion (
+            email TEXT PRIMARY KEY,
+            codigo TEXT NOT NULL,
+            creado_en DATETIME NOT NULL
+        )
+    """)
+    cursor.execute("REPLACE INTO codigos_recuperacion (email, codigo, creado_en) VALUES (?, ?, datetime('now'))", (email, codigo))
+    conn.commit()
+    conn.close()
+
+    return {"mensaje": "Código de recuperación enviado al correo"}
+
+@app.post("/recuperar/verificar")
+async def verificar_recuperacion(request: Request):
+    data = await request.json()
+    email = data.get("email")
+    codigo = data.get("codigo")
+    nueva_password = data.get("nueva_password")
+
+    if not all([email, codigo, nueva_password]):
+        raise HTTPException(status_code=400, detail="Faltan datos")
+
+    if not validar_password(nueva_password):
+        raise HTTPException(status_code=400, detail="La nueva contraseña no cumple con los requisitos")
+
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT codigo FROM codigos_recuperacion WHERE email = ?", (email,))
+    row = cursor.fetchone()
+
+    if not row or row[0] != codigo:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Código incorrecto")
+
+    hashed = pwd_context.hash(nueva_password)
+    cursor.execute("UPDATE CREDENCIALES SET password = ? WHERE email = ?", (hashed, email))
+    cursor.execute("DELETE FROM codigos_recuperacion WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+
+    return {"mensaje": "Contraseña actualizada correctamente"}

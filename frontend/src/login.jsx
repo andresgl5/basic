@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function Login({ onLogin, onMostrarRegistro }) {
+function Login({ onLogin, onMostrarRegistro, onMostrarRecuperar }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -44,9 +44,15 @@ function Login({ onLogin, onMostrarRegistro }) {
         <button type="submit">Entrar</button>
         {error && <p className="error-message">{error}</p>}
       </form>
-      <button onClick={onMostrarRegistro} className="register-button">
-        ¿No tienes cuenta? Registrarse
-      </button>
+      <div style={{ marginTop: "1rem" }}>
+        <button onClick={onMostrarRegistro} className="register-button">
+          ¿No tienes cuenta? Registrarse
+        </button>
+        <br />
+        <button onClick={onMostrarRecuperar} className="register-button">
+          ¿Olvidaste tu contraseña?
+        </button>
+      </div>
     </div>
   );
 }

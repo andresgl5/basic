@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./Login.css";
 
-function Registro({ onRegistroExitoso }) {
+function Registro({ onRegistroExitoso, onVolverLogin }) {
   const [paso, setPaso] = useState(0);
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -147,6 +147,9 @@ function Registro({ onRegistroExitoso }) {
           </form>
         </>
       )}
+      <button onClick={onVolverLogin}>
+            Volver al inicio de sesión
+          </button>
       {mensaje && <p className="error-message">{mensaje}</p>}
 
       {qrBase64 && (

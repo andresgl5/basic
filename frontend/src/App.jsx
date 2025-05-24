@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Login from "./Login";
 import Registro from "./Registro";
+import Recuperar from "./Recuperar";
 import DashboardAdmin from "./DashboardAdmin";
 import DashboardTecnico from "./DashboardTecnico";
 
@@ -9,6 +10,7 @@ function App() {
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("");
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  const [mostrarRecuperar, setMostrarRecuperar] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -38,10 +40,25 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return mostrarRegistro ? (
-      <Registro onRegistroExitoso={() => setMostrarRegistro(false)} />
-    ) : (
-      <Login onLogin={handleLogin} onMostrarRegistro={() => setMostrarRegistro(true)} />
+    if (mostrarRecuperar) {
+      return <Recuperar onVolverLogin={() => setMostrarRecuperar(false)} />;
+    }
+
+    if (mostrarRegistro) {
+      return (
+        <Registro
+          onRegistroExitoso={() => setMostrarRegistro(false)}
+          onVolverLogin={() => setMostrarRegistro(false)}
+        />
+      );
+    }
+
+    return (
+      <Login
+        onLogin={handleLogin}
+        onMostrarRegistro={() => setMostrarRegistro(true)}
+        onMostrarRecuperar={() => setMostrarRecuperar(true)}
+      />
     );
   }
 
