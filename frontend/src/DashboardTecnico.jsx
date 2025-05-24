@@ -5,6 +5,9 @@ function DashboardTecnico() {
   const [razonSocial, setRazonSocial] = useState('');
   const [clientes, setClientes] = useState([]);
   const [error, setError] = useState(null);
+  const [proyectos, setProyectos] = useState([]);
+  const [mostrarProyectos, setMostrarProyectos] = useState(false);
+
 
   const handleBuscarClientes = async () => {
     try {
@@ -15,6 +18,28 @@ function DashboardTecnico() {
       setError(null);
     } catch (err) {
       setClientes([]);
+      setError(err.message);
+    }
+  };
+
+  const obtenerProyectos = async () => {
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8000/instalaciones", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Error cargando proyectos");
+      }
+
+      const data = await res.json();
+      setProyectos(data.proyectos);
+    } catch (err) {
       setError(err.message);
     }
   };
@@ -58,6 +83,32 @@ function DashboardTecnico() {
 
           {/* Mensaje de error */}
           {error && <p style={{ color: "red" }}>{error}</p>}
+        </div>
+      )}
+      <button
+        onClick={() => {
+          if (!mostrarProyectos) obtenerProyectos();
+          setMostrarProyectos(!mostrarProyectos);
+        }}
+        className="logout-button button-spacing"
+      >
+        {mostrarProyectos ? "Ocultar proyectos" : "Ver proyectos disponibles"}
+      </button>
+
+
+      {error && <p className="error-message">{error}</p>}
+
+      {mostrarProyectos && proyectos.length > 0 && (
+        <div className="project-list">
+          <h3>Proyectos visibles:</h3>
+          <ul>
+            {proyectos.map((p, idx) => (
+              <li key={idx}>
+                <strong>{p.proyecto}</strong> — {p.direccion}  
+                <span style={{ color: "#888" }}> (Nivel: {p.nivel_seguridad})</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

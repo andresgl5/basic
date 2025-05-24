@@ -412,3 +412,43 @@ async def verificar_recuperacion(request: Request):
 
     return {"mensaje": "Contraseña actualizada correctamente"}
 
+@app.get("/instalaciones")
+async def get_instalaciones(current_user: dict = Depends(get_current_user)):
+    email = current_user["email"]
+
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT "DELEGACION", "NIVEL SEGURIDAD" FROM COMERCIALES WHERE EMAIL = ?', (email,))
+    row = cursor.fetchone()
+
+    if not row or not row[0] or row[1] is None:
+        conn.close()
+        raise HTTPException(
+            status_code=500,
+            detail="Delegación o nivel de seguridad del técnico no definido correctamente."
+        )
+
+    delegacion_tecnico = row[0]
+    nivel_tecnico = int(row[1])
+
+    cursor.execute("""
+        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, "NIVEL SEGURIDAD"
+        FROM "Datos Instalaciones"
+        WHERE DELEGACION = ?
+        AND "NIVEL SEGURIDAD" <= ?
+    """, (delegacion_tecnico, nivel_tecnico))
+
+    proyectos = cursor.fetchall()
+    conn.close()
+
+    return {
+        "proyectos": [
+            {
+                "proyecto": p[0],
+                "contrato": p[1],
+                "direccion": p[2],
+                "nivel_seguridad": p[3]
+            } for p in proyectos
+        ]
+    }

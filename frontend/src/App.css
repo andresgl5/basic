@@ -262,3 +262,23 @@ ul {
   margin-bottom: 1.5rem;
   color: #2c3e50;
 }
+.project-list {
+  margin-top: 2rem;
+  background: #fdfdfd;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.project-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.project-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+.button-spacing {
+  margin-top: 1rem;
+}
