@@ -9,6 +9,15 @@ from fastapi import Path
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+import smtplib
+import random
+from email.mime.text import MIMEText
+import re
+import pyotp
+import qrcode
+import base64
+from io import BytesIO
+
 
 SECRET_KEY = "clave-secreta-super-segura"
 ALGORITHM = "HS256"
@@ -16,6 +25,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def validar_password(password):
+    if len(password) < 12:
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False
+    if not re.search(r"\d", password):  # al menos un número
+        return False
+    return True
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -46,6 +63,22 @@ def only_admin(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="No tienes permiso para realizar esta acción")
 
 app = FastAPI()
+
+def generar_codigo():
+    return str(random.randint(100000, 999999))
+
+def enviar_codigo_por_email(email, codigo):
+    print(f"[SIMULADO] Código de verificación para {email}: {codigo}")
+   # msg = MIMEText(f"Tu código de verificación es: {codigo}")
+   # msg["Subject"] = "Código de verificación"
+   # msg["From"] = "tuapp@tudominio.com"
+   # msg["To"] = email
+
+   # with smtplib.SMTP("smtp.tudominio.com", 587) as server:
+   #     server.starttls()
+   #     server.login("tuapp@tudominio.com", "contraseña-segura")
+   #     server.send_message(msg)
+
 
 # CORS: permitir acceso desde el frontend
 app.add_middleware(
@@ -81,71 +114,39 @@ def buscar_cliente(razon_social: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
+
+
 @app.post("/login")
 async def login(request: Request):
-    credentials = await request.json()
-    email = credentials.get("email")
-    password = credentials.get("password")
-
-    if not email or not password:
-        raise HTTPException(status_code=400, detail="Faltan campos")
-
-    try:
-        conn_credentials = sqlite3.connect(DB_CREDENTIALS_PATH)
-        cursor = conn_credentials.cursor()
-
-        cursor.execute("SELECT password, rol FROM CREDENCIALES WHERE email = ?", (email,))
-        result = cursor.fetchone()
-        conn_credentials.close()
-
-        if not result:
-            raise HTTPException(status_code=401, detail="Usuario no encontrado")
-
-        hashed_password, rol = result
-
-        if not verify_password(password, hashed_password):
-            raise HTTPException(status_code=401, detail="Contraseña incorrecta")
-
-        access_token = create_access_token(
-            data={"sub": email, "rol": str(rol)},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-
-        return {"access_token": access_token, "token_type": "bearer"}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/register")
-async def register(request: Request, current_user: dict = Depends(only_admin)):
     data = await request.json()
     email = data.get("email")
     password = data.get("password")
-    rol = data.get("rol", "tecnico")
+    codigo_2fa = data.get("codigo_2fa")
 
-    if not email or not password:
-        raise HTTPException(status_code=400, detail="Email y contraseña son obligatorios")
+    if not all([email, password, codigo_2fa]):
+        raise HTTPException(status_code=400, detail="Faltan credenciales")
 
-    try:
-        conn_data = sqlite3.connect(DB_DATA_PATH)
-        cursor = conn_data.cursor()
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT password, rol, otp_secret FROM CREDENCIALES WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    conn.close()
 
-        cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
-        if cursor.fetchone():
-            conn_data.close()
-            raise HTTPException(status_code=400, detail="El usuario ya existe")
+    if not row:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
-        hashed_password = pwd_context.hash(password)
+    hashed_pwd, rol, otp_secret = row
 
-        cursor.execute("INSERT INTO usuarios (email, hash_password, rol) VALUES (?, ?, ?)", 
-                       (email, hashed_password, rol))
-        conn_data.commit()
-        conn_data.close()
+    if not pwd_context.verify(password, hashed_pwd):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
-        return {"mensaje": "Usuario creado exitosamente"}
+    totp = pyotp.TOTP(otp_secret)
+    if not totp.verify(codigo_2fa):
+        raise HTTPException(status_code=401, detail="Código 2FA inválido")
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    access_token = create_access_token(data={"sub": email, "rol": rol})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 
 @app.get("/usuarios")
 def get_usuarios(current_user: dict = Depends(only_admin)):
@@ -212,3 +213,91 @@ async def actualizar_usuario(usuario_id: int, request: Request, current_user: di
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/registro/inicio")
+async def inicio_registro(request: Request):
+    data = await request.json()
+    email = data.get("email")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email requerido")
+
+    # Verifica si el correo está en la tabla COMERCIALES
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM COMERCIALES WHERE EMAIL = ?", (email,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=403, detail="Email no autorizado")
+    conn.close()
+
+    codigo = generar_codigo()
+
+    # OPCIONAL: Imprimir para pruebas sin SMTP
+    print(f"[DEBUG] Código para {email}: {codigo}")
+
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS codigos_verificacion (email TEXT PRIMARY KEY, codigo TEXT NOT NULL, creado_en DATETIME NOT NULL)")
+    cursor.execute("REPLACE INTO codigos_verificacion (email, codigo, creado_en) VALUES (?, ?, datetime('now'))", (email, codigo))
+    conn.commit()
+    conn.close()
+
+    return {"mensaje": "Código enviado al correo"}
+
+
+@app.post("/registro/verificar")
+async def verificar_codigo(request: Request):
+    data = await request.json()
+    email = data.get("email")
+    codigo_ingresado = data.get("codigo")
+    password = data.get("password")
+
+    if not all([email, codigo_ingresado, password]):
+        raise HTTPException(status_code=400, detail="Faltan datos")
+
+    if not validar_password(password):
+        raise HTTPException(status_code=400, detail="La contraseña no cumple los requisitos")
+
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT codigo FROM codigos_verificacion WHERE email = ?", (email,))
+    row = cursor.fetchone()
+
+    if not row or row[0] != codigo_ingresado:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Código incorrecto")
+
+    # Generar hash de la contraseña
+    hashed = pwd_context.hash(password)
+
+    # ✅ Generar secreto TOTP
+    otp_secret = pyotp.random_base32()
+    otp_uri = pyotp.totp.TOTP(otp_secret).provisioning_uri(name=email, issuer_name="MiAppSegura")
+
+    # ✅ Generar QR y convertir a base64
+    qr_img = qrcode.make(otp_uri)
+    buffer = BytesIO()
+    qr_img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    # ✅ Crear tabla si no existe y guardar usuario
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CREDENCIALES (
+            email TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            rol INTEGER,
+            otp_secret TEXT
+        )
+    """)
+    cursor.execute("INSERT OR REPLACE INTO CREDENCIALES (email, password, rol, otp_secret) VALUES (?, ?, ?, ?)",
+                   (email, hashed, 2, otp_secret))
+    cursor.execute("DELETE FROM codigos_verificacion WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+
+    return {
+        "mensaje": "Registro completado",
+        "qr_base64": qr_base64
+    }
+
