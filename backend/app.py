@@ -222,7 +222,7 @@ async def inicio_registro(request: Request):
     if not email:
         raise HTTPException(status_code=400, detail="Email requerido")
 
-    # Verifica si el correo está en la tabla COMERCIALES
+    # Verificar que esté en la tabla COMERCIALES
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM COMERCIALES WHERE EMAIL = ?", (email,))
@@ -231,19 +231,35 @@ async def inicio_registro(request: Request):
         raise HTTPException(status_code=403, detail="Email no autorizado")
     conn.close()
 
-    codigo = generar_codigo()
-
-    # OPCIONAL: Imprimir para pruebas sin SMTP
-    print(f"[DEBUG] Código para {email}: {codigo}")
-
+    # ⚠️ Verificar que NO esté ya en la tabla CREDENCIALES
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS codigos_verificacion (email TEXT PRIMARY KEY, codigo TEXT NOT NULL, creado_en DATETIME NOT NULL)")
+    cursor.execute("SELECT 1 FROM CREDENCIALES WHERE email = ?", (email,))
+    if cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=409, detail="Este email ya está registrado")
+    conn.close()
+
+    # Continuar generando el código
+    codigo = generar_codigo()
+    print(f"[DEBUG] Código para {email}: {codigo}")
+    
+    # Guardar en tabla codigos_verificacion...
+    conn = sqlite3.connect(DB_CREDENTIALS_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS codigos_verificacion (
+            email TEXT PRIMARY KEY,
+            codigo TEXT NOT NULL,
+            creado_en DATETIME NOT NULL
+        )
+    """)
     cursor.execute("REPLACE INTO codigos_verificacion (email, codigo, creado_en) VALUES (?, ?, datetime('now'))", (email, codigo))
     conn.commit()
     conn.close()
 
     return {"mensaje": "Código enviado al correo"}
+
 
 
 @app.post("/registro/verificar")
