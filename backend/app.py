@@ -368,17 +368,47 @@ async def verificar_recuperacion(request: Request):
 
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
+
+    # Verificar código
     cursor.execute("SELECT codigo FROM codigos_recuperacion WHERE email = ?", (email,))
     row = cursor.fetchone()
-
     if not row or row[0] != codigo:
         conn.close()
         raise HTTPException(status_code=403, detail="Código incorrecto")
 
-    hashed = pwd_context.hash(nueva_password)
-    cursor.execute("UPDATE CREDENCIALES SET password = ? WHERE email = ?", (hashed, email))
+    # Obtener contraseñas antiguas
+    cursor.execute("""
+        SELECT PASSWORD, PASSWORD1, PASSWORD2, PASSWORD3, PASSWORD4, PASSWORD5
+        FROM CREDENCIALES WHERE email = ?
+    """, (email,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    hashed_nueva = pwd_context.hash(nueva_password)
+
+    # Validar que no se repita
+    for previous in row:
+        if pwd_context.verify(nueva_password, previous):
+            conn.close()
+            raise HTTPException(status_code=409, detail="No puedes reutilizar una contraseña anterior")
+
+    # Rotar contraseñas
+    cursor.execute("""
+        UPDATE CREDENCIALES SET
+            PASSWORD5 = PASSWORD4,
+            PASSWORD4 = PASSWORD3,
+            PASSWORD3 = PASSWORD2,
+            PASSWORD2 = PASSWORD1,
+            PASSWORD1 = PASSWORD,
+            PASSWORD = ?
+        WHERE email = ?
+    """, (hashed_nueva, email))
+
     cursor.execute("DELETE FROM codigos_recuperacion WHERE email = ?", (email,))
     conn.commit()
     conn.close()
 
     return {"mensaje": "Contraseña actualizada correctamente"}
+
