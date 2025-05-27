@@ -423,3 +423,68 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
             } for p in proyectos
         ]
     }
+
+@app.get("/tecnicos/{email}/delegaciones")
+def get_delegaciones_tecnico(email: str, user: dict = Depends(admin_required)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT delegacion FROM COMERCIALES_DELEGACIONES WHERE email = ?", (email,))
+    delegaciones = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return {"delegaciones": delegaciones}
+
+
+@app.post("/tecnicos/{email}/delegaciones")
+def asignar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required)):
+    nuevas = payload.get("delegaciones", [])
+    if not isinstance(nuevas, list):
+        raise HTTPException(status_code=400, detail="El campo 'delegaciones' debe ser una lista.")
+    
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    for delegacion in nuevas:
+        cursor.execute(
+            "INSERT OR IGNORE INTO COMERCIALES_DELEGACIONES (email, delegacion) VALUES (?, ?)",
+            (email, delegacion)
+        )
+    conn.commit()
+    conn.close()
+    return {"msg": "Delegaciones asignadas"}
+
+
+@app.delete("/tecnicos/{email}/delegaciones")
+def eliminar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required)):
+    eliminar = payload.get("delegaciones", [])
+    if not isinstance(eliminar, list):
+        raise HTTPException(status_code=400, detail="El campo 'delegaciones' debe ser una lista.")
+    
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    for delegacion in eliminar:
+        cursor.execute(
+            "DELETE FROM COMERCIALES_DELEGACIONES WHERE email = ? AND delegacion = ?",
+            (email, delegacion)
+        )
+    conn.commit()
+    conn.close()
+    return {"msg": "Delegaciones eliminadas"}
+
+
+@app.get("/tecnicos")
+def listar_tecnicos(current_user: dict = Depends(admin_required)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT EMAIL FROM COMERCIALES")
+    tecnicos = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    print("Técnicos encontrados:", tecnicos)
+    return {"tecnicos": tecnicos}
+
+@app.get("/delegaciones", response_model=dict)
+def listar_delegaciones(current_user: dict = Depends(admin_required)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT DELEGACION FROM DELEGACIONES")
+    resultados = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return {"delegaciones": resultados}

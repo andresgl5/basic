@@ -297,3 +297,63 @@ ul {
 .toggle-button:hover {
   background-color: #0056b3;
 }
+.gestion-delegaciones-container {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.gestion-delegaciones-title {
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.gestion-delegaciones-label {
+  margin-right: 10px;
+}
+
+.gestion-delegaciones-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #aaa;
+}
+
+.gestion-delegaciones-button {
+  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.gestion-delegaciones-button:hover {
+  background-color: #0056b3;
+}
+
+.gestion-delegaciones-subtitle {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.gestion-delegaciones-list li {
+  margin-bottom: 6px;
+}
+
+.gestion-delegaciones-delete-button {
+  padding: 4px 10px;
+  margin-left: 10px;
+  border-radius: 6px;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.gestion-delegaciones-delete-button:hover {
+  background-color: #c82333;
+}

@@ -1,32 +1,46 @@
 import { useState, useEffect } from "react";
 import GestionUsuarios from "./GestionUsuarios";
+import GestionDelegaciones from "./GestionDelegaciones";
 
 function DashboardAdmin() {
   const [mostrarGestionUsuarios, setMostrarGestionUsuarios] = useState(false);
-  const [mostrarGestion, setMostrarGestion] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rol, setRol] = useState('tecnico');
-  const [mensaje, setMensaje] = useState('');
+  const [mostrarGestionDelegaciones, setMostrarGestionDelegaciones] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
-  const [usuarioEditando, setUsuarioEditando] = useState(null);
-  const [filtro, setFiltro] = useState('');
 
-  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:8000/tecnicos", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("No autorizado");
+        }
+        return res.json();
+      })
+      .then((data) => setTecnicos(data.tecnicos || []))
+      .catch((error) => {
+        console.error("Error al obtener técnicos:", error);
+      });
+  }, []);
 
-  
 
-  
   return (
     <div className="dashboard-container">
       <h2 className="dashboard-title">Panel de Administración</h2>
       <p>Bienvenido administrador. Aquí puedes gestionar usuarios, ver reportes, etc.</p>
 
-      <button className="toggle-button" onClick={() => setMostrarGestion(!mostrarGestion)}>
-        {mostrarGestion ? "Ocultar Gestión de Usuarios" : "Mostrar Gestión de Usuarios"}
+      <button className="toggle-button" onClick={() => setMostrarGestionUsuarios(!mostrarGestionUsuarios)}>
+        {mostrarGestionUsuarios ? "Ocultar Gestión de Usuarios" : "Mostrar Gestión de Usuarios"}
       </button>
+      {mostrarGestionUsuarios && <GestionUsuarios />}
 
-      {mostrarGestion && <GestionUsuarios />}
+      <button className="toggle-button" onClick={() => setMostrarGestionDelegaciones(!mostrarGestionDelegaciones)}>
+        {mostrarGestionDelegaciones ? "Ocultar Gestión de Delegaciones" : "Mostrar Gestión de Delegaciones"}
+      </button>
+      {mostrarGestionDelegaciones && <GestionDelegaciones tecnicos={usuarios} />}
     </div>
   );
 }
