@@ -12,6 +12,7 @@ function DashboardTecnico() {
   const [filtroNivel, setFiltroNivel] = useState("");
   const [delegaciones, setDelegaciones] = useState([]);
   const [delegacionesAbiertas, setDelegacionesAbiertas] = useState({});
+  const [filtroLocalidad, setFiltroLocalidad] = useState("");
 
   const handleBuscarClientes = async () => {
     try {
@@ -75,6 +76,7 @@ function DashboardTecnico() {
     if (
       proyecto.proyecto.toLowerCase().includes(filtroProyecto.toLowerCase()) &&
       proyecto.direccion.toLowerCase().includes(filtroDireccion.toLowerCase()) &&
+      proyecto.localidad.toLowerCase().includes(filtroLocalidad.toLowerCase()) &&
       (filtroNivel === "" || String(proyecto.nivel_seguridad) === filtroNivel)
     ) {
       acc[delegacion].push(proyecto);
@@ -155,6 +157,13 @@ function DashboardTecnico() {
             onChange={(e) => setFiltroDireccion(e.target.value)}
             style={{ marginRight: "10px" }}
           />
+          <input
+            type="text"
+            placeholder="Localidad"
+            value={filtroLocalidad}
+            onChange={(e) => setFiltroLocalidad(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
           <select value={filtroNivel} onChange={(e) => setFiltroNivel(e.target.value)}>
             <option value="">Todos los niveles</option>
             {[1, 2, 3, 4, 5].map(n => (
@@ -188,7 +197,7 @@ function DashboardTecnico() {
                         ) : (
                           proyectosDelegacion.map((p, idx) => (
                             <li key={idx} className="result-item">
-                              <strong>{p.proyecto}</strong> — {p.direccion}<br />
+                              <strong>{p.proyecto}</strong> — {p.direccion} ({p.localidad})<br />
                               <em>Nivel: {p.nivel_seguridad}</em>
                             </li>
                           ))

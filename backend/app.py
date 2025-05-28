@@ -406,7 +406,7 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
 
     placeholders = ",".join(["?"] * len(delegaciones))
     cursor.execute(f"""
-        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, DELEGACION, "NIVEL SEGURIDAD"
+        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, DELEGACION, LOCALIDAD, "NIVEL SEGURIDAD"
         FROM "Datos Instalaciones"
         WHERE DELEGACION IN ({placeholders})
         AND "NIVEL SEGURIDAD" <= ?
@@ -421,7 +421,8 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
             "contrato": p[1],
             "direccion": p[2],
             "delegacion": p[3],
-            "nivel_seguridad": p[4]
+            "localidad": p[4],
+            "nivel_seguridad": p[5]
         } for p in proyectos
     ]
 

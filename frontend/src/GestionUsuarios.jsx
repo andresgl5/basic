@@ -83,7 +83,8 @@ function GestionUsuarios() {
                   }
                 >
                   <option value={1}>Técnico</option>
-                  <option value={2}>Administrador</option>
+                  <option value={2}>Encargado</option>
+                  <option value={3}>Administrador</option>
                 </select>
               </td>
               <td>
