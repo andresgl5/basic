@@ -389,39 +389,44 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT "DELEGACION", "NIVEL SEGURIDAD" FROM COMERCIALES WHERE EMAIL = ?', (email,))
-    row = cursor.fetchone()
+    cursor.execute('SELECT delegacion FROM COMERCIALES_DELEGACIONES WHERE email = ?', (email,))
+    delegaciones = [row[0] for row in cursor.fetchall()]
 
-    if not row or not row[0] or row[1] is None:
+    if not delegaciones:
         conn.close()
-        raise HTTPException(
-            status_code=500,
-            detail="Delegación o nivel de seguridad del técnico no definido correctamente."
-        )
+        raise HTTPException(status_code=404, detail="No se encontraron delegaciones asignadas.")
 
-    delegacion_tecnico = row[0]
-    nivel_tecnico = int(row[1])
+    cursor.execute('SELECT "NIVEL SEGURIDAD" FROM COMERCIALES WHERE EMAIL = ?', (email,))
+    row = cursor.fetchone()
+    if not row or row[0] is None:
+        conn.close()
+        raise HTTPException(status_code=500, detail="Nivel de seguridad no definido para el técnico.")
 
-    cursor.execute("""
-        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, "NIVEL SEGURIDAD"
+    nivel_tecnico = int(row[0])
+
+    placeholders = ",".join(["?"] * len(delegaciones))
+    cursor.execute(f"""
+        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, DELEGACION, "NIVEL SEGURIDAD"
         FROM "Datos Instalaciones"
-        WHERE DELEGACION = ?
+        WHERE DELEGACION IN ({placeholders})
         AND "NIVEL SEGURIDAD" <= ?
-    """, (delegacion_tecnico, nivel_tecnico))
+    """, (*delegaciones, nivel_tecnico))
 
     proyectos = cursor.fetchall()
     conn.close()
 
-    return {
-        "proyectos": [
-            {
-                "proyecto": p[0],
-                "contrato": p[1],
-                "direccion": p[2],
-                "nivel_seguridad": p[3]
-            } for p in proyectos
-        ]
-    }
+    resultado = [
+        {
+            "proyecto": p[0],
+            "contrato": p[1],
+            "direccion": p[2],
+            "delegacion": p[3],
+            "nivel_seguridad": p[4]
+        } for p in proyectos
+    ]
+
+    return {"proyectos": resultado}
+
 
 @app.get("/tecnicos/{email}/delegaciones")
 def get_delegaciones_tecnico(email: str, user: dict = Depends(admin_required)):
@@ -486,3 +491,13 @@ def listar_delegaciones(current_user: dict = Depends(admin_required)):
     resultados = [row[0] for row in cursor.fetchall()]
     conn.close()
     return {"delegaciones": resultados}
+
+@app.get("/mis-delegaciones")
+def obtener_mis_delegaciones(current_user: dict = Depends(get_current_user)):
+    email = current_user["email"]
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT delegacion FROM COMERCIALES_DELEGACIONES WHERE email = ?", (email,))
+    delegaciones = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return {"delegaciones": delegaciones}

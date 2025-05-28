@@ -10,7 +10,8 @@ function DashboardTecnico() {
   const [filtroDireccion, setFiltroDireccion] = useState("");
   const [filtroProyecto, setFiltroProyecto] = useState("");
   const [filtroNivel, setFiltroNivel] = useState("");
-
+  const [delegaciones, setDelegaciones] = useState([]);
+  const [delegacionesAbiertas, setDelegacionesAbiertas] = useState({});
 
   const handleBuscarClientes = async () => {
     try {
@@ -22,6 +23,27 @@ function DashboardTecnico() {
     } catch (err) {
       setClientes([]);
       setError(err.message);
+    }
+  };
+
+  const obtenerDelegaciones = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const email = payload.sub;
+
+      const res = await fetch(`http://localhost:8000/mis-delegaciones`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("No se pudieron cargar las delegaciones");
+      const data = await res.json();
+      setDelegaciones(data.delegaciones || []);
+    } catch (err) {
+      console.error("Error obteniendo delegaciones:", err);
+      setError("No se pudieron cargar las delegaciones");
     }
   };
 
@@ -47,6 +69,19 @@ function DashboardTecnico() {
     }
   };
 
+  const proyectosAgrupados = proyectos.reduce((acc, proyecto) => {
+    const delegacion = proyecto.delegacion || "Sin delegación";
+    if (!acc[delegacion]) acc[delegacion] = [];
+    if (
+      proyecto.proyecto.toLowerCase().includes(filtroProyecto.toLowerCase()) &&
+      proyecto.direccion.toLowerCase().includes(filtroDireccion.toLowerCase()) &&
+      (filtroNivel === "" || String(proyecto.nivel_seguridad) === filtroNivel)
+    ) {
+      acc[delegacion].push(proyecto);
+    }
+    return acc;
+  }, {});
+
   return (
     <div className="dashboard-container">
       <h2 className="dashboard-title">Panel de Técnico</h2>
@@ -67,7 +102,6 @@ function DashboardTecnico() {
           />
           <button onClick={handleBuscarClientes}>Buscar</button>
 
-          {/* Mostrar resultados */}
           {clientes.length > 0 ? (
             <div className="results">
               <h4>Resultados encontrados:</h4>
@@ -84,13 +118,16 @@ function DashboardTecnico() {
             razonSocial && <p></p>
           )}
 
-          {/* Mensaje de error */}
-          {error && <p style={{ color: "red" }}>{error}</p>}
+          {error && <p className="error-message">{error}</p>}
         </div>
       )}
+
       <button
         onClick={() => {
-          if (!mostrarProyectos) obtenerProyectos();
+          if (!mostrarProyectos) {
+            obtenerDelegaciones();
+            obtenerProyectos();
+          }
           setMostrarProyectos(!mostrarProyectos);
         }}
         className="logout-button button-spacing"
@@ -98,13 +135,12 @@ function DashboardTecnico() {
         {mostrarProyectos ? "Ocultar proyectos" : "Ver proyectos disponibles"}
       </button>
 
-
       {error && <p className="error-message">{error}</p>}
 
-      
       {mostrarProyectos && (
         <div className="project-list">
           <h3>Proyectos disponibles</h3>
+
           <input
             type="text"
             placeholder="Proyecto"
@@ -121,23 +157,49 @@ function DashboardTecnico() {
           />
           <select value={filtroNivel} onChange={(e) => setFiltroNivel(e.target.value)}>
             <option value="">Todos los niveles</option>
-            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>Nivel {n}</option>)}
+            {[1, 2, 3, 4, 5].map(n => (
+              <option key={n} value={n}>Nivel {n}</option>
+            ))}
           </select>
 
-          <ul style={{ marginTop: "1rem" }}>
-            {proyectos
-              .filter(
-                (p) =>
-                  p.proyecto.toLowerCase().includes(filtroProyecto.toLowerCase()) &&
-                  p.direccion.toLowerCase().includes(filtroDireccion.toLowerCase()) &&
-                  (filtroNivel === "" || String(p.nivel_seguridad) === filtroNivel)
-              )
-              .map((p, idx) => (
-                <li key={idx}>
-                  <strong>{p.proyecto}</strong> — {p.direccion} <span style={{ color: "#888" }}>(Nivel: {p.nivel_seguridad})</span>
-                </li>
-              ))}
-          </ul>
+          <div style={{ marginTop: "1rem" }}>
+            {delegaciones.length === 0 ? (
+              <p>No hay delegaciones asignadas.</p>
+            ) : (
+              delegaciones.map(delegacion => {
+                const proyectosDelegacion = proyectosAgrupados[delegacion] || [];
+                return (
+                  <div key={delegacion} className="delegacion-group">
+                    <button
+                      className="toggle-button"
+                      onClick={() =>
+                        setDelegacionesAbiertas(prev => ({
+                          ...prev,
+                          [delegacion]: !prev[delegacion],
+                        }))
+                      }
+                    >
+                      {delegacionesAbiertas[delegacion] ? "▼" : "▶"} {delegacion} ({proyectosDelegacion.length})
+                    </button>
+                    {delegacionesAbiertas[delegacion] && (
+                      <ul className="delegacion-list">
+                        {proyectosDelegacion.length === 0 ? (
+                          <li className="result-item">Sin proyectos disponibles</li>
+                        ) : (
+                          proyectosDelegacion.map((p, idx) => (
+                            <li key={idx} className="result-item">
+                              <strong>{p.proyecto}</strong> — {p.direccion}<br />
+                              <em>Nivel: {p.nivel_seguridad}</em>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -145,5 +207,3 @@ function DashboardTecnico() {
 }
 
 export default DashboardTecnico;
-
-  
