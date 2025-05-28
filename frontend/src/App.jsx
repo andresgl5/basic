@@ -5,6 +5,8 @@ import Registro from "./Registro";
 import Recuperar from "./Recuperar";
 import DashboardAdmin from "./DashboardAdmin";
 import DashboardTecnico from "./DashboardTecnico";
+import DashboardEncargado from "./DashboardEncargado";
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -70,7 +72,9 @@ function App() {
         <button className="logout-button" onClick={handleLogout}>Cerrar sesión</button>
       </div>
 
-      {parseInt(userRole) === 2 ? <DashboardAdmin /> : <DashboardTecnico />}
+    {parseInt(userRole) === 3 && <DashboardAdmin />}
+    {parseInt(userRole) === 2 && <DashboardEncargado />}
+    {parseInt(userRole) === 1 && <DashboardTecnico />}
     </div>
   );
 }

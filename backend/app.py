@@ -30,7 +30,7 @@ def validar_password(password):
         return False
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         return False
-    if not re.search(r"\d", password):  # al menos un número
+    if not re.search(r"\d", password): 
         return False
     return True
 
@@ -44,7 +44,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  # Lo usamos solo para leer tokens
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  
 
 # Función para decodificar el token
 def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -58,8 +58,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+def encargado_o_admin_required(current_user: dict = Depends(get_current_user)):
+    if current_user["rol"] not in (2, 3):
+        raise HTTPException(status_code=403, detail="Acceso reservado a encargados o administradores")
+
+
 def admin_required(current_user: dict = Depends(get_current_user)):
-    if current_user["rol"] != 2:
+    if current_user["rol"] != 3:
         raise HTTPException(status_code=403, detail="No tienes permiso para realizar esta acción")
 
 app = FastAPI()
@@ -83,7 +88,7 @@ def enviar_codigo_por_email(email, codigo):
 # CORS: permitir acceso desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # puedes restringir esto si prefieres
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,13 +104,11 @@ def buscar_cliente(razon_social: str):
         conn_data = sqlite3.connect(DB_DATA_PATH)
         cursor = conn_data.cursor()
 
-        # Buscar todos los clientes cuyo nombre contenga el término de búsqueda
         cursor.execute("SELECT RAZON_SOCIAL, DIRECCION FROM CLIENTE WHERE LOWER(RAZON_SOCIAL) LIKE LOWER(?)", 
                        ('%' + razon_social + '%',))
         results = cursor.fetchall()
         conn_data.close()
 
-        # Si hay resultados, los devolvemos
         if results:
             return {"clientes": [{"razon_social": row[0], "direccion": row[1]} for row in results]}
         else:
@@ -197,7 +200,6 @@ async def inicio_registro(request: Request):
     if not email:
         raise HTTPException(status_code=400, detail="Email requerido")
 
-    # Verificar que esté en la tabla COMERCIALES
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM COMERCIALES WHERE EMAIL = ?", (email,))
@@ -206,7 +208,6 @@ async def inicio_registro(request: Request):
         raise HTTPException(status_code=403, detail="Email no autorizado")
     conn.close()
 
-    # Verificar que NO esté ya en la tabla CREDENCIALES
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM CREDENCIALES WHERE email = ?", (email,))
@@ -219,7 +220,6 @@ async def inicio_registro(request: Request):
     codigo = generar_codigo()
     print(f"[DEBUG] Código para {email}: {codigo}")
     
-    # Guardar en tabla codigos_verificacion...
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -309,7 +309,7 @@ async def inicio_recuperacion(request: Request):
 
     codigo = generar_codigo()
 
-    print(f"[RECUPERACIÓN] Código para {email}: {codigo}")  # Para desarrollo
+    print(f"[RECUPERACIÓN] Código para {email}: {codigo}")  
 
     conn = sqlite3.connect(DB_CREDENTIALS_PATH)
     cursor = conn.cursor()
@@ -359,7 +359,6 @@ async def verificar_recuperacion(request: Request):
 
     hashed_nueva = pwd_context.hash(nueva_password)
 
-    # Validar que no se repita
     for previous in row:
         if pwd_context.verify(nueva_password, previous):
             conn.close()
@@ -477,7 +476,6 @@ def listar_tecnicos(current_user: dict = Depends(admin_required)):
     cursor.execute("SELECT EMAIL FROM COMERCIALES")
     tecnicos = [row[0] for row in cursor.fetchall()]
     conn.close()
-    print("Técnicos encontrados:", tecnicos)
     return {"tecnicos": tecnicos}
 
 @app.get("/delegaciones", response_model=dict)
