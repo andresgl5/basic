@@ -18,12 +18,34 @@ import qrcode
 import base64
 from io import BytesIO
 from pydantic import BaseModel
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+import hashlib
 
 SECRET_KEY = "clave-secreta-super-segura"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Clave simétrica (debes guardarla segura en un entorno real)
+# IMPORTANTE!!!!!  --> Esta clave no debe ponerse en el código (Ahora está porque es para el desarrollo) Lo suyo sería que fuese en una variable de entorno, o con AWS Secrets Manager, o archivo externo fuera del proyecto, etc.
+ENCRYPTION_KEY = hashlib.sha256(b"tu_clave_super_segura").digest()
+BLOCK_SIZE = 16
+
+def cifrar(texto: str) -> str:
+    cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC)
+    ct_bytes = cipher.encrypt(pad(texto.encode(), BLOCK_SIZE))
+    iv = cipher.iv
+    return base64.b64encode(iv + ct_bytes).decode("utf-8")
+
+def descifrar(texto_cifrado: str) -> str:
+    raw = base64.b64decode(texto_cifrado)
+    iv = raw[:BLOCK_SIZE]
+    ct = raw[BLOCK_SIZE:]
+    cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(ct), BLOCK_SIZE).decode("utf-8")
+
 
 def validar_password(password):
     if len(password) < 12:
@@ -533,9 +555,9 @@ def obtener_detalles_proyecto(proyecto: str, user: dict = Depends(get_current_us
         claves_dict = {}
         if claves:
             claves_dict = {
-                "usuario": claves[0],
-                "contrasena": claves[1],
-                "pin": claves[2]
+                "usuario": descifrar(claves[0]),
+                "contrasena": descifrar(claves[1]),
+                "pin": descifrar(claves[2])
             }
 
         detalles.append({
