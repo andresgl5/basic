@@ -502,3 +502,53 @@ def obtener_mis_delegaciones(current_user: dict = Depends(get_current_user)):
     delegaciones = [row[0] for row in cursor.fetchall()]
     conn.close()
     return {"delegaciones": delegaciones}
+
+@app.get("/proyectos/{proyecto}/detalles")
+def obtener_detalles_proyecto(proyecto: str, user: dict = Depends(get_current_user)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT idp FROM PROYECTO WHERE proyecto = ?", (proyecto,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return {"detalles": []} 
+
+    idp = row[0]
+
+    cursor.execute("""
+        SELECT e.Ide, t.Tipo, e.Estado, e.Marca, e.Modelo, e.Numero_serie, e.Mac, e.IP
+        FROM EQUIPO e
+        LEFT JOIN TIPO_EQUIPO t ON e.Idte = t.Idte
+        WHERE e.Idp = ?
+    """, (idp,))
+    equipos = cursor.fetchall()
+
+    detalles = []
+    for eq in equipos:
+        ide, tipo, estado, marca, modelo, numero_serie, mac, ip = eq
+
+        cursor.execute("SELECT Usuario, Contrasena, PIN FROM CLAVES WHERE Ide = ?", (ide,))
+        claves = cursor.fetchone()
+        claves_dict = {}
+        if claves:
+            claves_dict = {
+                "usuario": claves[0],
+                "contrasena": claves[1],
+                "pin": claves[2]
+            }
+
+        detalles.append({
+            "ide": ide,
+            "tipo": tipo,
+            "estado": estado,
+            "marca": marca,
+            "modelo": modelo,
+            "numero_serie": numero_serie,
+            "mac": mac,
+            "ip": ip,
+            "claves": claves_dict
+        })
+
+    conn.close()
+    return {"detalles": detalles}

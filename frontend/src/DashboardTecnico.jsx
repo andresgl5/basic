@@ -197,8 +197,68 @@ function DashboardTecnico() {
                         ) : (
                           proyectosDelegacion.map((p, idx) => (
                             <li key={idx} className="result-item">
-                              <strong>{p.proyecto}</strong> — {p.direccion} ({p.localidad})<br />
-                              <em>Nivel: {p.nivel_seguridad}</em>
+                              <details>
+                                <summary>
+                                  <strong>{p.proyecto}</strong> — {p.direccion} ({p.localidad})<br />
+                                  <em>Nivel: {p.nivel_seguridad}</em>
+                                </summary>
+                                {!p.detalles ? (
+                                  <button
+                                    onClick={async () => {
+                                      const res = await fetch(`http://localhost:8000/proyectos/${p.proyecto}/detalles`, {
+                                        headers: {
+                                          Authorization: `Bearer ${localStorage.getItem("token")}`,
+                                        },
+                                      });
+                                      const data = await res.json();
+                                      setProyectos(prev =>
+                                        prev.map(proj =>
+                                          proj.proyecto === p.proyecto ? { ...proj, detalles: data.detalles } : proj
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    Cargar detalles
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setProyectos(prev =>
+                                          prev.map(proj =>
+                                            proj.proyecto === p.proyecto ? { ...proj, detalles: null } : proj
+                                          )
+                                        );
+                                      }}
+                                    >
+                                      Ocultar detalles
+                                    </button>
+
+                                    {p.detalles.length === 0 ? (
+                                      <p><em>No hay equipos asociados.</em></p>
+                                    ) : (
+                                      <ul style={{ marginTop: "0.5rem" }}>
+                                        {p.detalles.map((d, i) => (
+                                          <li key={i} style={{ marginBottom: "0.5rem" }}>
+                                            <strong>{d.tipo}</strong> ({d.estado})<br />
+                                            {d.marca} {d.modelo} — Serie: {d.numero_serie}<br />
+                                            IP: {d.ip} — MAC: {d.mac}<br />
+                                            {d.claves && Object.keys(d.claves).length > 0 ? (
+                                              <>
+                                                <em>Usuario:</em> {d.claves.usuario} —
+                                                <em> Contraseña:</em> {d.claves.contrasena} —
+                                                <em> PIN:</em> {d.claves.pin}
+                                              </>
+                                            ) : (
+                                              <em>Sin claves asociadas</em>
+                                            )}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </>
+                                )}
+                              </details>
                             </li>
                           ))
                         )}
