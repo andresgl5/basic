@@ -525,11 +525,10 @@ def obtener_mis_delegaciones(current_user: dict = Depends(get_current_user)):
     conn.close()
     return {"delegaciones": delegaciones}
 
-@app.get("/proyectos/{proyecto}/detalles")
-def obtener_detalles_proyecto(proyecto: str, user: dict = Depends(get_current_user)):
+@app.get("/proyectos/{proyecto:path}/detalles")
+def obtener_detalles_proyecto(proyecto: str = Path(...), user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
-
     cursor.execute("SELECT idp FROM PROYECTO WHERE proyecto = ?", (proyecto,))
     row = cursor.fetchone()
     if not row:

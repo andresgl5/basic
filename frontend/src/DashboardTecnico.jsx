@@ -205,7 +205,7 @@ function DashboardTecnico() {
                                 {!p.detalles ? (
                                   <button
                                     onClick={async () => {
-                                      const res = await fetch(`http://localhost:8000/proyectos/${p.proyecto}/detalles`, {
+                                      const res = await fetch(`http://localhost:8000/proyectos/${encodeURIComponent(p.proyecto)}/detalles`, {
                                         headers: {
                                           Authorization: `Bearer ${localStorage.getItem("token")}`,
                                         },
