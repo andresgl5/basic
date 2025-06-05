@@ -625,6 +625,7 @@ const handleEliminarEquipo = async (proyecto, ide) => {
                                       <input type="text" name="mac" placeholder="MAC" />
                                       <input type="text" name="ip" placeholder="IP" />
                                       <button type="submit" className="btn-guardar" style={{ marginTop:"3px"}}>Guardar equipo</button>
+                                      <button type="button" className="btn-cancelar" onClick={() => setFormularioNuevoEquipo(prev => ({ ...prev, [p.proyecto]: false }))}>Cancelar</button>
                                     </form>
                                   )}
                                   </>
