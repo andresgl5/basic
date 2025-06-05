@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import hashlib
+from fastapi import Body
 
 SECRET_KEY = "clave-secreta-super-segura"
 ALGORITHM = "HS256"
@@ -549,15 +550,17 @@ def obtener_detalles_proyecto(proyecto: str = Path(...), user: dict = Depends(ge
     for eq in equipos:
         ide, tipo, estado, marca, modelo, numero_serie, mac, ip = eq
 
-        cursor.execute("SELECT Usuario, Contrasena, PIN FROM CLAVES WHERE Ide = ?", (ide,))
-        claves = cursor.fetchone()
-        claves_dict = {}
-        if claves:
-            claves_dict = {
-                "usuario": descifrar(claves[0]),
-                "contrasena": descifrar(claves[1]),
-                "pin": descifrar(claves[2])
-            }
+        cursor.execute("SELECT Idc, Usuario, Contrasena, PIN FROM CLAVES WHERE Ide = ?", (ide,))
+        claves_rows = cursor.fetchall()
+        claves_list = []
+        for idc, usuario_cifrado, contrasena_cifrada, pin_cifrado in claves_rows:
+            claves_list.append({
+                "idc": idc,
+                "usuario": descifrar(usuario_cifrado),
+                "contrasena": descifrar(contrasena_cifrada),
+                "pin": descifrar(pin_cifrado)
+            })
+
 
         detalles.append({
             "ide": ide,
@@ -568,8 +571,117 @@ def obtener_detalles_proyecto(proyecto: str = Path(...), user: dict = Depends(ge
             "numero_serie": numero_serie,
             "mac": mac,
             "ip": ip,
-            "claves": claves_dict
+            "claves": claves_list 
         })
+
 
     conn.close()
     return {"detalles": detalles}
+
+@app.post("/equipos", dependencies=[Depends(encargado_o_admin_required)])
+def crear_equipo(payload: dict = Body(...)):
+    proyecto = payload.get("idp") 
+
+   
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT idp FROM PROYECTO WHERE proyecto = ?", (proyecto,))
+    result = cursor.fetchone()
+    if not result:
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+
+    idp = result[0] 
+
+
+    idte = payload.get("idte")
+    estado = payload.get("estado")
+    marca = payload.get("marca")
+    modelo = payload.get("modelo")
+    numero_serie = payload.get("numero_serie")
+    mac = payload.get("mac")
+    ip = payload.get("ip")
+
+    cursor.execute("SELECT MAX(Id) FROM EQUIPO")
+    last_id = cursor.fetchone()[0] or 0
+    nuevo_ide = f"EQ{str(last_id + 1).zfill(3)}"
+
+    cursor.execute("""
+        INSERT INTO EQUIPO (Ide, Idp, Idte, Estado, Marca, Modelo, Numero_serie, Mac, IP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (nuevo_ide, idp, idte, estado, marca, modelo, numero_serie, mac, ip))
+    conn.commit()
+    conn.close()
+
+    return {"msg": "Equipo creado", "ide": nuevo_ide}
+
+
+@app.put("/equipos/{ide}", dependencies=[Depends(encargado_o_admin_required)])
+def editar_equipo(ide: str, payload: dict = Body(...)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE EQUIPO
+        SET Idte = ?, Estado = ?, Marca = ?, Modelo = ?, Numero_serie = ?, Mac = ?, IP = ?
+        WHERE Ide = ?
+    """, (
+        payload.get("idte"),
+        payload.get("estado"),
+        payload.get("marca"),
+        payload.get("modelo"),
+        payload.get("numero_serie"),
+        payload.get("mac"),
+        payload.get("ip"),
+        ide
+    ))
+    conn.commit()
+    conn.close()
+    return {"msg": "Equipo actualizado"}
+
+
+@app.put("/claves/{idc}", dependencies=[Depends(encargado_o_admin_required)])
+def editar_clave(idc: str, payload: dict = Body(...)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    usuario_cifrado = cifrar(payload.get("usuario"))
+    contrasena_cifrada = cifrar(payload.get("contrasena"))
+    pin_cifrado = cifrar(payload.get("pin"))
+
+    cursor.execute("SELECT 1 FROM CLAVES WHERE Idc = ?", (idc,))
+    if cursor.fetchone():
+        cursor.execute("""
+            UPDATE CLAVES
+            SET Usuario = ?, Contrasena = ?, PIN = ?
+            WHERE Idc = ?
+        """, (usuario_cifrado, contrasena_cifrada, pin_cifrado, idc))
+        conn.commit()
+    else:
+        raise HTTPException(status_code=404, detail="Clave no encontrada")
+
+    conn.close()
+    return {"msg": "Clave actualizada"}
+
+@app.post("/claves", dependencies=[Depends(encargado_o_admin_required)])
+def crear_clave(payload: dict = Body(...)):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    ide = payload.get("ide") 
+    usuario_cifrado = cifrar(payload.get("usuario"))
+    contrasena_cifrada = cifrar(payload.get("contrasena"))
+    pin_cifrado = cifrar(payload.get("pin"))
+
+    cursor.execute("SELECT MAX(Id) FROM CLAVES")
+    last_id = cursor.fetchone()[0] or 0
+    nuevo_idc = f"C{str(last_id + 1).zfill(3)}"
+
+    cursor.execute("""
+        INSERT INTO CLAVES (Idc, Ide, Usuario, Contrasena, PIN)
+        VALUES (?, ?, ?, ?, ?)
+    """, (nuevo_idc, ide, usuario_cifrado, contrasena_cifrada, pin_cifrado))
+
+    conn.commit()
+    conn.close()
+
+    return {"msg": "Clave creada", "idc": nuevo_idc}

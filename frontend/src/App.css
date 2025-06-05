@@ -378,3 +378,39 @@ ul {
   margin-bottom: 8px;
   border-radius: 6px;
 }
+.mensaje-exito {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #c3e6cb;
+  border-radius: 5px;
+}
+.btn-guardar {
+  background-color: #28a745; /* Verde */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  margin-right: 10px; /* separación */
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-guardar:hover {
+  background-color: #218838; /* Verde más oscuro al pasar el ratón */
+}
+
+.btn-cancelar {
+  background-color: #6c757d; /* Gris */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-cancelar:hover {
+  background-color: #5a6268; /* Gris más oscuro al pasar el ratón */
+}
