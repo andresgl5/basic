@@ -387,22 +387,22 @@ ul {
   border-radius: 5px;
 }
 .btn-guardar {
-  background-color: #28a745; /* Verde */
+  background-color: #28a745; 
   color: white;
   border: none;
   padding: 8px 16px;
-  margin-right: 10px; /* separación */
+  margin-right: 10px; 
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
 }
 
 .btn-guardar:hover {
-  background-color: #218838; /* Verde más oscuro al pasar el ratón */
+  background-color: #218838; 
 }
 
 .btn-cancelar {
-  background-color: #6c757d; /* Gris */
+  background-color: #6c757d; 
   color: white;
   border: none;
   padding: 8px 16px;
@@ -412,5 +412,18 @@ ul {
 }
 
 .btn-cancelar:hover {
-  background-color: #5a6268; /* Gris más oscuro al pasar el ratón */
+  background-color: #5a6268; 
+}
+.btn-eliminar {
+  background-color: #cf240d; 
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  margin-left: 10px; 
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-eliminar:hover {
+  background-color: #741e08; 
 }

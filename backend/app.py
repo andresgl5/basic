@@ -685,3 +685,37 @@ def crear_clave(payload: dict = Body(...)):
     conn.close()
 
     return {"msg": "Clave creada", "idc": nuevo_idc}
+
+@app.delete("/claves/{idc}", dependencies=[Depends(encargado_o_admin_required)])
+def eliminar_clave(idc: str):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT 1 FROM CLAVES WHERE Idc = ?", (idc,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Clave no encontrada")
+
+    cursor.execute("DELETE FROM CLAVES WHERE Idc = ?", (idc,))
+    conn.commit()
+    conn.close()
+
+    return {"msg": "Clave eliminada"}
+
+@app.delete("/equipos/{ide}", dependencies=[Depends(encargado_o_admin_required)])
+def eliminar_equipo(ide: str):
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT 1 FROM EQUIPO WHERE Ide = ?", (ide,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+
+    cursor.execute("DELETE FROM CLAVES WHERE Ide = ?", (ide,))
+    cursor.execute("DELETE FROM EQUIPO WHERE Ide = ?", (ide,))
+    
+    conn.commit()
+    conn.close()
+
+    return {"msg": "Equipo eliminado"}

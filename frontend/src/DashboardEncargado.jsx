@@ -265,7 +265,6 @@ const handleCrearClave = async (e, proyecto, ide) => {
 
     if (!res.ok) throw new Error("Error al crear la clave");
 
-    // Refrescamos detalles
     const detallesRes = await fetch(`http://localhost:8000/proyectos/${encodeURIComponent(proyecto)}/detalles`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -277,13 +276,81 @@ const handleCrearClave = async (e, proyecto, ide) => {
     setMensaje("Clave creada correctamente");
 
     setTimeout(() => {
-      setMensaje("");  // Limpia el mensaje
+      setMensaje(""); 
     }, 3000);
 
   } catch (error) {
     console.error("Error al crear clave:", error);
   }
 };
+
+const handleEliminarClave = async (proyecto, idc) => {
+  const token = localStorage.getItem("token");
+
+  if (!window.confirm("¿Estás seguro de que quieres eliminar esta clave?")) return;
+
+  try {
+    const res = await fetch(`http://localhost:8000/claves/${idc}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Error al eliminar la clave");
+
+    const detallesRes = await fetch(`http://localhost:8000/proyectos/${encodeURIComponent(proyecto)}/detalles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await detallesRes.json();
+    setProyectos(prev =>
+      prev.map(proj => (proj.proyecto === proyecto ? { ...proj, detalles: data.detalles } : proj))
+    );
+    setEditandoClaves(null);
+    setMensaje("Clave eliminada correctamente");
+
+    setTimeout(() => {
+      setMensaje("");
+    }, 3000);
+
+  } catch (error) {
+    console.error("Error al eliminar clave:", error);
+  }
+};
+
+const handleEliminarEquipo = async (proyecto, ide) => {
+  const token = localStorage.getItem("token");
+
+  if (!window.confirm("¿Estás seguro de que quieres eliminar este equipo?")) return;
+
+  try {
+    const res = await fetch(`http://localhost:8000/equipos/${ide}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Error al eliminar el equipo");
+
+    const detallesRes = await fetch(`http://localhost:8000/proyectos/${encodeURIComponent(proyecto)}/detalles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await detallesRes.json();
+    setProyectos(prev =>
+      prev.map(proj => (proj.proyecto === proyecto ? { ...proj, detalles: data.detalles } : proj))
+    );
+    setMensaje("Equipo eliminado correctamente");
+
+    setTimeout(() => {
+      setMensaje("");
+    }, 3000);
+
+  } catch (error) {
+    console.error("Error al eliminar equipo:", error);
+  }
+};
+
 
 
   return (
@@ -477,6 +544,7 @@ const handleCrearClave = async (e, proyecto, ide) => {
 
                                               <button type="submit" style={{ marginRight:"10px"}} className="btn-guardar">Guardar cambios</button>
                                               <button type="button" className="btn-cancelar" onClick={() => setEditandoEquipo(null)}>Cancelar</button>
+                                              <button type="button"  className="btn-eliminar" onClick={() => handleEliminarEquipo(p.proyecto, d.ide)}>Eliminar equipo</button>
                                             </form>
                                           )}<br />
                                           {d.claves.length > 0 ? (
@@ -499,6 +567,7 @@ const handleCrearClave = async (e, proyecto, ide) => {
                                                     <input type="text" name="pin" defaultValue={clave.pin} placeholder="PIN" /><br />
                                                     <button type="submit" style={{ marginRight: "10px" }} className="btn-guardar">Guardar clave</button>
                                                     <button type="button" className="btn-cancelar" onClick={() => setEditandoClaves(null)}>Cancelar</button>
+                                                    <button type="button"  className="btn-eliminar" onClick={() => handleEliminarClave(p.proyecto, clave.idc)}>Eliminar clave</button>
                                                   </form>
                                                 )}
                                               </div>
