@@ -121,6 +121,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DATA_PATH = os.path.join(BASE_DIR, "data.sqlite")
 DB_CREDENTIALS_PATH = os.path.join(BASE_DIR, "credenciales.sqlite")
 
+def escribir_log(accion: str, detalle: str, email_usuario: str = "desconocido"):
+    log_dir = os.path.join(BASE_DIR, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "registro_acciones.txt")
+
+    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"[{fecha}] Usuario: {email_usuario} - Acción: {accion} - Detalles: {detalle}\n")
+
+
 @app.get("/buscar/")
 def buscar_cliente(razon_social: str):
     try:
@@ -138,9 +148,6 @@ def buscar_cliente(razon_social: str):
             raise HTTPException(status_code=404, detail="Clientes no encontrados")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
-
 
 @app.post("/login")
 async def login(request: Request):
@@ -202,7 +209,7 @@ class UsuarioUpdate(BaseModel):
     nivel_seguridad: int
 
 @app.put("/usuarios/{email}", dependencies=[Depends(admin_required)])
-def actualizar_usuario(email: str, datos: UsuarioUpdate):
+def actualizar_usuario(email: str, datos: UsuarioUpdate, current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -212,11 +219,18 @@ def actualizar_usuario(email: str, datos: UsuarioUpdate):
     """, (datos.rol, datos.delegacion, datos.nivel_seguridad, email))
     conn.commit()
     conn.close()
+
+    escribir_log(
+        "UPDATE",
+        f"Actualización de usuario: {email} - Rol: {datos.rol}, Delegación: {datos.delegacion}, Nivel Seguridad: {datos.nivel_seguridad}",
+        current_user["email"]
+    )
+    
     return {"mensaje": "Usuario actualizado correctamente"}
 
 
 @app.post("/registro/inicio")
-async def inicio_registro(request: Request):
+async def inicio_registro(request: Request, current_user: dict = Depends(get_current_user)):
     data = await request.json()
     email = data.get("email")
 
@@ -254,6 +268,11 @@ async def inicio_registro(request: Request):
     """)
     cursor.execute("REPLACE INTO codigos_verificacion (email, codigo, creado_en) VALUES (?, ?, datetime('now'))", (email, codigo))
     conn.commit()
+    escribir_log(
+        "INSERT",
+        f"Generación o actualización de código de verificación para: {email}",
+        current_user["email"]
+    )
     conn.close()
 
     return {"mensaje": "Código enviado al correo"}
@@ -261,7 +280,7 @@ async def inicio_registro(request: Request):
 
 
 @app.post("/registro/verificar")
-async def verificar_codigo(request: Request):
+async def verificar_codigo(request: Request, current_user: dict = Depends(get_current_user)):
     data = await request.json()
     email = data.get("email")
     codigo_ingresado = data.get("codigo")
@@ -307,6 +326,11 @@ async def verificar_codigo(request: Request):
                    (email, hashed, 2, otp_secret))
     cursor.execute("DELETE FROM codigos_verificacion WHERE email = ?", (email,))
     conn.commit()
+    escribir_log(
+        "INSERT",
+        f"Registro de nuevo usuario: {email}",
+        current_user["email"]
+    )
     conn.close()
 
     return {
@@ -315,7 +339,7 @@ async def verificar_codigo(request: Request):
     }
 
 @app.post("/recuperar/inicio")
-async def inicio_recuperacion(request: Request):
+async def inicio_recuperacion(request: Request, current_user: dict = Depends(get_current_user)):
     data = await request.json()
     email = data.get("email")
 
@@ -345,12 +369,17 @@ async def inicio_recuperacion(request: Request):
     """)
     cursor.execute("REPLACE INTO codigos_recuperacion (email, codigo, creado_en) VALUES (?, ?, datetime('now'))", (email, codigo))
     conn.commit()
+    escribir_log(
+        "INSERT",
+        f"Generación o actualización de código de recuperación para: {email}",
+        current_user["email"]
+    )
     conn.close()
 
     return {"mensaje": "Código de recuperación enviado al correo"}
 
 @app.post("/recuperar/verificar")
-async def verificar_recuperacion(request: Request):
+async def verificar_recuperacion(request: Request, current_user: dict = Depends(get_current_user)):
     data = await request.json()
     email = data.get("email")
     codigo = data.get("codigo")
@@ -401,6 +430,11 @@ async def verificar_recuperacion(request: Request):
 
     cursor.execute("DELETE FROM codigos_recuperacion WHERE email = ?", (email,))
     conn.commit()
+    escribir_log(
+    "UPDATE",
+    f"Contraseña actualizada para usuario: {email}",
+    current_user["email"]
+    )
     conn.close()
 
     return {"mensaje": "Contraseña actualizada correctamente"}
@@ -463,7 +497,7 @@ def get_delegaciones_tecnico(email: str, user: dict = Depends(admin_required)):
 
 
 @app.post("/tecnicos/{email}/delegaciones")
-def asignar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required)):
+def asignar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required), current_user: dict = Depends(get_current_user)):
     nuevas = payload.get("delegaciones", [])
     if not isinstance(nuevas, list):
         raise HTTPException(status_code=400, detail="El campo 'delegaciones' debe ser una lista.")
@@ -476,12 +510,18 @@ def asignar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_r
             (email, delegacion)
         )
     conn.commit()
+    escribir_log(
+    "UPDATE",
+    f"Delegaciones asignadas a técnico: {email} -> {nuevas}",
+    current_user["email"] 
+    )
+
     conn.close()
     return {"msg": "Delegaciones asignadas"}
 
 
 @app.delete("/tecnicos/{email}/delegaciones")
-def eliminar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required)):
+def eliminar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_required), current_user: dict = Depends(get_current_user)):
     eliminar = payload.get("delegaciones", [])
     if not isinstance(eliminar, list):
         raise HTTPException(status_code=400, detail="El campo 'delegaciones' debe ser una lista.")
@@ -494,6 +534,11 @@ def eliminar_delegaciones(email: str, payload: dict, user: dict = Depends(admin_
             (email, delegacion)
         )
     conn.commit()
+    escribir_log(
+    "DELETE",
+    f"Delegaciones eliminadas del técnico: {email} -> {eliminar}",
+    current_user["email"]
+    )
     conn.close()
     return {"msg": "Delegaciones eliminadas"}
 
@@ -579,7 +624,7 @@ def obtener_detalles_proyecto(proyecto: str = Path(...), user: dict = Depends(ge
     return {"detalles": detalles}
 
 @app.post("/equipos", dependencies=[Depends(encargado_o_admin_required)])
-def crear_equipo(payload: dict = Body(...)):
+def crear_equipo(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     proyecto = payload.get("idp") 
 
    
@@ -610,13 +655,18 @@ def crear_equipo(payload: dict = Body(...)):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (nuevo_ide, idp, idte, estado, marca, modelo, numero_serie, mac, ip))
     conn.commit()
+    escribir_log(
+    "CREATE",
+    f"Equipo creado: {nuevo_ide} en proyecto: {proyecto}",
+    current_user["email"]
+    )
     conn.close()
 
     return {"msg": "Equipo creado", "ide": nuevo_ide}
 
 
 @app.put("/equipos/{ide}", dependencies=[Depends(encargado_o_admin_required)])
-def editar_equipo(ide: str, payload: dict = Body(...)):
+def editar_equipo(ide: str, payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
@@ -635,12 +685,17 @@ def editar_equipo(ide: str, payload: dict = Body(...)):
         ide
     ))
     conn.commit()
+    escribir_log(
+    "UPDATE",
+    f"Equipo actualizado: {ide} con datos: {payload}",
+    current_user["email"]
+    )
     conn.close()
     return {"msg": "Equipo actualizado"}
 
 
 @app.put("/claves/{idc}", dependencies=[Depends(encargado_o_admin_required)])
-def editar_clave(idc: str, payload: dict = Body(...)):
+def editar_clave(idc: str, payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
@@ -659,11 +714,16 @@ def editar_clave(idc: str, payload: dict = Body(...)):
     else:
         raise HTTPException(status_code=404, detail="Clave no encontrada")
 
+    escribir_log(
+    "UPDATE",
+    f"Clave actualizada: {idc}",
+    current_user["email"]
+    )
     conn.close()
     return {"msg": "Clave actualizada"}
 
 @app.post("/claves", dependencies=[Depends(encargado_o_admin_required)])
-def crear_clave(payload: dict = Body(...)):
+def crear_clave(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
@@ -682,12 +742,17 @@ def crear_clave(payload: dict = Body(...)):
     """, (nuevo_idc, ide, usuario_cifrado, contrasena_cifrada, pin_cifrado))
 
     conn.commit()
+    escribir_log(
+    "CREATE",
+    f"Clave creada: {nuevo_idc} para equipo: {ide}",
+    current_user["email"]
+    )
     conn.close()
 
     return {"msg": "Clave creada", "idc": nuevo_idc}
 
 @app.delete("/claves/{idc}", dependencies=[Depends(encargado_o_admin_required)])
-def eliminar_clave(idc: str):
+def eliminar_clave(idc: str, current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
@@ -698,12 +763,17 @@ def eliminar_clave(idc: str):
 
     cursor.execute("DELETE FROM CLAVES WHERE Idc = ?", (idc,))
     conn.commit()
+    escribir_log(
+    "DELETE",
+    f"Clave eliminada: {idc}",
+    current_user["email"]
+    )
     conn.close()
 
     return {"msg": "Clave eliminada"}
 
 @app.delete("/equipos/{ide}", dependencies=[Depends(encargado_o_admin_required)])
-def eliminar_equipo(ide: str):
+def eliminar_equipo(ide: str, current_user: dict = Depends(get_current_user)):
     conn = sqlite3.connect(DB_DATA_PATH)
     cursor = conn.cursor()
 
@@ -716,6 +786,11 @@ def eliminar_equipo(ide: str):
     cursor.execute("DELETE FROM EQUIPO WHERE Ide = ?", (ide,))
     
     conn.commit()
+    escribir_log(
+    "DELETE",
+    f"Equipo eliminado: {ide}",
+    current_user["email"]
+    )
     conn.close()
 
     return {"msg": "Equipo eliminado"}
