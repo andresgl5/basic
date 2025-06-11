@@ -243,15 +243,17 @@ function DashboardTecnico() {
                                             <strong>{d.tipo}</strong> ({d.estado})<br />
                                             {d.marca} {d.modelo} — Serie: {d.numero_serie}<br />
                                             IP: {d.ip} — MAC: {d.mac}<br />
-                                            {d.claves && Object.keys(d.claves).length > 0 ? (
-                                              <>
-                                                <em>Usuario:</em> {d.claves.usuario} —
-                                                <em> Contraseña:</em> {d.claves.contrasena} —
-                                                <em> PIN:</em> {d.claves.pin}
-                                              </>
+                                            {d.claves.length > 0 ? (
+                                              d.claves.map((clave, idx) => (
+                                                <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                                                  <em>Usuario:</em> {clave.usuario} —
+                                                  <em> Contraseña:</em> {clave.contrasena} —
+                                                  <em> PIN:</em> {clave.pin}
+                                                </div>
+                                              ))
                                             ) : (
-                                              <em>Sin claves asociadas</em>
-                                            )}
+                                              <em>Sin claves asociadas<br /></em>
+                                          )}
                                           </li>
                                         ))}
                                       </ul>
