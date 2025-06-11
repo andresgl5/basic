@@ -252,13 +252,17 @@ function DashboardTecnico() {
                                     ) : (
                                       <ul style={{ marginTop: "0.5rem" }}>
                                         {p.detalles.map((d, i) => (
-                                          <li key={i} style={{ marginBottom: "0.5rem" }}>
-                                            <strong>{d.tipo}</strong> ({d.estado})<br />
-                                            {d.marca} {d.modelo} — Serie: {d.numero_serie}<br />
-                                            IP: {d.ip} — MAC: {d.mac}<br />
+                                          <li key={i} className="equipo-card">
+                                            <div className="equipo-header">
+                                              {d.tipo} ({d.estado})
+                                            </div>
+                                            <div className="equipo-datos">
+                                              {d.marca} {d.modelo} — <strong>Serie:</strong> {d.numero_serie}<br />
+                                              <strong>IP:</strong> {d.ip} — <strong>MAC:</strong> {d.mac}
+                                            </div>
                                             {d.claves.length > 0 ? (
                                               d.claves.map((clave, idx) => (
-                                                <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                                                <div key={idx} className="clave-item">
                                                   <em>Usuario:</em> {clave.usuario} —
                                                   <em> Contraseña:</em> {clave.contrasena} —
                                                   <em> PIN:</em> {clave.pin}

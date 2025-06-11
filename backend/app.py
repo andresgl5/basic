@@ -416,7 +416,6 @@ async def verificar_recuperacion(request: Request, current_user: dict = Depends(
             conn.close()
             raise HTTPException(status_code=409, detail="No puedes reutilizar una contraseña anterior")
 
-    # Rotar contraseñas
     cursor.execute("""
         UPDATE CREDENCIALES SET
             PASSWORD5 = PASSWORD4,
