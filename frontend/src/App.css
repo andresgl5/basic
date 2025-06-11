@@ -427,3 +427,20 @@ ul {
 .btn-eliminar:hover {
   background-color: #741e08; 
 }
+
+.filtro-nivel {
+  padding: 5px;
+  font-size: rem;
+  border: 2px solid #007bff;
+  border-radius: 4px;
+  background-color: #f0f8ff;
+  color: #333;
+  transition: border-color 0.3s ease;
+  margin-top: 5px;
+}
+
+.filtro-nivel:focus {
+  outline: none;
+  border-color: #0056b3;
+  background-color: #e6f0ff;
+}

@@ -463,10 +463,11 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
 
     placeholders = ",".join(["?"] * len(delegaciones))
     cursor.execute(f"""
-        SELECT PROYECTO, DETALLE_CONTRATO, DIRECCION, DELEGACION, LOCALIDAD, "NIVEL SEGURIDAD"
-        FROM "Datos Instalaciones"
-        WHERE DELEGACION IN ({placeholders})
-        AND "NIVEL SEGURIDAD" <= ?
+        SELECT d.PROYECTO, d.DETALLE_CONTRATO, d.DIRECCION, d.DELEGACION, d.LOCALIDAD, d."NIVEL SEGURIDAD", c.RAZON_SOCIAL
+        FROM "Datos Instalaciones" d
+        LEFT JOIN CLIENTE c ON d.CIF_CLIENTE = c.CIF_CLIENTE
+        WHERE d.DELEGACION IN ({placeholders})
+        AND d."NIVEL SEGURIDAD" <= ?
     """, (*delegaciones, nivel_tecnico))
 
     proyectos = cursor.fetchall()
@@ -479,7 +480,8 @@ async def get_instalaciones(current_user: dict = Depends(get_current_user)):
             "direccion": p[2],
             "delegacion": p[3],
             "localidad": p[4],
-            "nivel_seguridad": p[5]
+            "nivel_seguridad": p[5],
+            "razon_social": p[6] or ""
         } for p in proyectos
     ]
 

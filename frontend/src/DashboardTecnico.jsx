@@ -13,6 +13,7 @@ function DashboardTecnico() {
   const [delegaciones, setDelegaciones] = useState([]);
   const [delegacionesAbiertas, setDelegacionesAbiertas] = useState({});
   const [filtroLocalidad, setFiltroLocalidad] = useState("");
+  const [filtroRazonSocial, setFiltroRazonSocial] = useState("");
 
   const handleBuscarClientes = async () => {
     try {
@@ -77,6 +78,7 @@ function DashboardTecnico() {
       proyecto.proyecto.toLowerCase().includes(filtroProyecto.toLowerCase()) &&
       proyecto.direccion.toLowerCase().includes(filtroDireccion.toLowerCase()) &&
       proyecto.localidad.toLowerCase().includes(filtroLocalidad.toLowerCase()) &&
+      proyecto.razon_social.toLowerCase().includes(filtroRazonSocial.toLowerCase()) &&
       (filtroNivel === "" || String(proyecto.nivel_seguridad) === filtroNivel)
     ) {
       acc[delegacion].push(proyecto);
@@ -88,11 +90,11 @@ function DashboardTecnico() {
     <div className="dashboard-container">
       <h2 className="dashboard-title">Panel de Técnico</h2>
       <p>Bienvenido técnico. Aquí puedes buscar clientes y ver los proyectos disponibles.</p>
-
+      {/*} 
       <button className="toggle-button" onClick={() => setMostrarBuscarClientes(!mostrarBuscarClientes)}>
         {mostrarBuscarClientes ? "Ocultar Buscar Clientes" : "Buscar Clientes"}
       </button>
-
+         
       {mostrarBuscarClientes && (
         <div className="buscar-clientes">
           <h3>Buscar Cliente</h3>
@@ -123,7 +125,7 @@ function DashboardTecnico() {
           {error && <p className="error-message">{error}</p>}
         </div>
       )}
-
+      */}
       <button
         onClick={() => {
           if (!mostrarProyectos) {
@@ -144,6 +146,7 @@ function DashboardTecnico() {
           <h3>Proyectos disponibles</h3>
 
           <input
+            className="filtro-nivel"
             type="text"
             placeholder="Proyecto"
             value={filtroProyecto}
@@ -151,6 +154,7 @@ function DashboardTecnico() {
             style={{ marginRight: "10px" }}
           />
           <input
+            className="filtro-nivel"
             type="text"
             placeholder="Dirección"
             value={filtroDireccion}
@@ -158,13 +162,22 @@ function DashboardTecnico() {
             style={{ marginRight: "10px" }}
           />
           <input
+            className="filtro-nivel"
             type="text"
             placeholder="Localidad"
             value={filtroLocalidad}
             onChange={(e) => setFiltroLocalidad(e.target.value)}
             style={{ marginRight: "10px" }}
           />
-          <select value={filtroNivel} onChange={(e) => setFiltroNivel(e.target.value)}>
+          <input
+            className="filtro-nivel"
+            type="text"
+            placeholder="Razón social"
+            value={filtroRazonSocial}
+            onChange={(e) => setFiltroRazonSocial(e.target.value)}
+            style={{ marginRight: "10px", marginTop: "5px"}}
+          />
+          <select className="filtro-nivel" value={filtroNivel} onChange={(e) => setFiltroNivel(e.target.value)}>
             <option value="">Todos los niveles</option>
             {[1, 2, 3, 4, 5].map(n => (
               <option key={n} value={n}>Nivel {n}</option>
