@@ -795,3 +795,12 @@ def eliminar_equipo(ide: str, current_user: dict = Depends(get_current_user)):
     conn.close()
 
     return {"msg": "Equipo eliminado"}
+
+@app.get("/tipos-equipo")
+def listar_tipos_equipo():
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT Idte, Tipo FROM TIPO_EQUIPO")
+    tipos = cursor.fetchall()
+    conn.close()
+    return [{"idte": row[0], "tipo": row[1]} for row in tipos]

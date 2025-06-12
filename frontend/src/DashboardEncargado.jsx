@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 
 function DashboardTecnico() {
   const [mostrarBuscarClientes, setMostrarBuscarClientes] = useState(false);
@@ -19,7 +20,7 @@ function DashboardTecnico() {
   const [editandoClaves, setEditandoClaves] = useState(null);
   const [formularioNuevaClave, setFormularioNuevaClave] = useState({});
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("");
-
+  const [tiposEquipo, setTiposEquipo] = useState([]);
 
 
   const handleBuscarClientes = async () => {
@@ -113,7 +114,8 @@ function DashboardTecnico() {
     const token = localStorage.getItem("token");
 
     const tipoSeleccionado = form.tipo.value;
-    const idte = tiposEquipoMap[tipoSeleccionado];
+    const idte = tiposEquipo.find(t => t.tipo === tipoSeleccionado)?.idte;
+
 
     const equipoActualizado = {
       idte: idte,
@@ -162,7 +164,8 @@ function DashboardTecnico() {
   const token = localStorage.getItem("token");
 
   const tipoSeleccionado = form.tipo.value;
-  const idte = tiposEquipoMap[tipoSeleccionado];
+  const idte = tiposEquipo.find(t => t.tipo === tipoSeleccionado)?.idte;
+
 
   const nuevoEquipo = {
     idp: proyecto,
@@ -353,7 +356,19 @@ const handleEliminarEquipo = async (proyecto, ide) => {
   }
 };
 
-
+const obtenerTiposEquipo = async () => {
+  try {
+    const res = await fetch("http://localhost:8000/tipos-equipo");
+    if (!res.ok) throw new Error("Error al obtener tipos de equipo");
+    const data = await res.json();
+    setTiposEquipo(data);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+useEffect(() => {
+  obtenerTiposEquipo();
+}, []);
 
   return (
     <div className="dashboard-container">
@@ -534,18 +549,11 @@ const handleEliminarEquipo = async (proyecto, ide) => {
 
                                           {editandoEquipo && editandoEquipo.ide === d.ide && (
                                             <form onSubmit={(e) => handleEditarEquipo(e, p.proyecto, d.ide)}>
-                                              <select name="tipo" defaultValue={editandoEquipo.tipo} required>
+                                              <select name="tipo" required>
                                                 <option value="">Selecciona Tipo</option>
-                                                <option value="Grabador">Grabador</option>
-                                                <option value="Cámara fija">Cámara fija</option>
-                                                <option value="Minidomo">Minidomo</option>
-                                                <option value="Domo PTZ">Domo PTZ</option>
-                                                <option value="Switch">Switch</option>
-                                                <option value="Central Intrusión">Central Intrusión</option>
-                                                <option value="Central Incendio">Central Incendio</option>
-                                                <option value="Ordenador">Ordenador</option>
-                                                <option value="Software">Software</option>
-                                                <option value="Otro">Otro</option>
+                                                {tiposEquipo.map(t => (
+                                                  <option key={t.idte} value={t.tipo}>{t.tipo}</option>
+                                                ))}
                                               </select>
 
                                               <select name="estado" defaultValue={editandoEquipo.estado} required>
@@ -650,7 +658,7 @@ const handleEliminarEquipo = async (proyecto, ide) => {
                                 )}
                               </details>
                             </li>
-                          ))
+                          )) 
                         )}
                       </ul>
                     )}
