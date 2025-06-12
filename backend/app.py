@@ -804,3 +804,12 @@ def listar_tipos_equipo():
     tipos = cursor.fetchall()
     conn.close()
     return [{"idte": row[0], "tipo": row[1]} for row in tipos]
+
+@app.get("/estados-equipo")
+def listar_estados_equipo():
+    conn = sqlite3.connect(DB_DATA_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, Estado FROM ESTADO")
+    estados = cursor.fetchall()
+    conn.close()
+    return [{"id": row[0], "estado": row[1]} for row in estados]

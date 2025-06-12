@@ -21,6 +21,9 @@ function DashboardTecnico() {
   const [formularioNuevaClave, setFormularioNuevaClave] = useState({});
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("");
   const [tiposEquipo, setTiposEquipo] = useState([]);
+  const [estadosEquipo, setEstadosEquipo] = useState([]);
+
+
 
 
   const handleBuscarClientes = async () => {
@@ -366,9 +369,24 @@ const obtenerTiposEquipo = async () => {
     console.error("Error:", error);
   }
 };
+
+const obtenerEstadosEquipo = async () => {
+  try {
+    const res = await fetch("http://localhost:8000/estados-equipo");
+    if (!res.ok) throw new Error("Error al obtener estados");
+    const data = await res.json();
+    setEstadosEquipo(data);
+  } catch (error) {
+    console.error("Error cargando estados:", error);
+  }
+};
+
 useEffect(() => {
   obtenerTiposEquipo();
+  obtenerEstadosEquipo();
 }, []);
+
+
 
   return (
     <div className="dashboard-container">
@@ -549,17 +567,18 @@ useEffect(() => {
 
                                           {editandoEquipo && editandoEquipo.ide === d.ide && (
                                             <form onSubmit={(e) => handleEditarEquipo(e, p.proyecto, d.ide)}>
-                                              <select name="tipo" required>
+                                              <select name="tipo" required defaultValue={editandoEquipo.tipo}>
                                                 <option value="">Selecciona Tipo</option>
                                                 {tiposEquipo.map(t => (
                                                   <option key={t.idte} value={t.tipo}>{t.tipo}</option>
                                                 ))}
                                               </select>
 
-                                              <select name="estado" defaultValue={editandoEquipo.estado} required>
+                                              <select name="estado" required defaultValue={editandoEquipo.estado}>
                                                 <option value="">Selecciona Estado</option>
-                                                <option value="Activo">Activo</option>
-                                                <option value="No Activo">No Activo</option>
+                                                {estadosEquipo.map(e => (
+                                                  <option key={e.ide} value={e.estado}>{e.estado}</option>
+                                                ))}
                                               </select>
 
                                               <input type="text" name="marca" defaultValue={editandoEquipo.marca} placeholder="Marca" required />
@@ -628,23 +647,18 @@ useEffect(() => {
                                     <form onSubmit={(e) => handleCrearEquipo(e, p.proyecto)}>
                                       <select name="tipo" required>
                                         <option value="">Selecciona Tipo</option>
-                                        <option value="Grabador">Grabador</option>
-                                        <option value="Cámara fija">Cámara fija</option>
-                                        <option value="Minidomo">Minidomo</option>
-                                        <option value="Domo PTZ">Domo PTZ</option>
-                                        <option value="Switch">Switch</option>
-                                        <option value="Central Intrusión">Central Intrusión</option>
-                                        <option value="Central Incendio">Central Incendio</option>
-                                        <option value="Ordenador">Ordenador</option>
-                                        <option value="Software">Software</option>
-                                        <option value="Otro">Otro</option>
+                                        {tiposEquipo.map(t => (
+                                          <option key={t.idte} value={t.tipo}>{t.tipo}</option>
+                                        ))}
                                       </select>
 
-                                      <select name="estado" required>
+                                      <select name="estado" required >
                                         <option value="">Selecciona Estado</option>
-                                        <option value="Activo">Activo</option>
-                                        <option value="No Activo">No Activo</option>
+                                        {estadosEquipo.map(e => (
+                                          <option key={e.ide} value={e.estado}>{e.estado}</option>
+                                        ))}
                                       </select>
+
                                       <input type="text" name="marca" placeholder="Marca" required />
                                       <input type="text" name="modelo" placeholder="Modelo" required />
                                       <input type="text" name="numero_serie" placeholder="Número de Serie" />
