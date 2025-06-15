@@ -6,7 +6,7 @@ import Recuperar from "./Recuperar";
 import DashboardAdmin from "./DashboardAdmin";
 import DashboardTecnico from "./DashboardTecnico";
 import DashboardEncargado from "./DashboardEncargado";
-
+import { isTokenExpired } from "./jwtAuth";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,10 +14,16 @@ function App() {
   const [userRole, setUserRole] = useState("");
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [yaInicioSesionAntes, setYaInicioSesionAntes] = useState(false);
+
+
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+  const token = localStorage.getItem("token");
+  if (token) {
+    setYaInicioSesionAntes(true);
+    if (!isTokenExpired(token)) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setIsAuthenticated(true);
@@ -26,8 +32,15 @@ function App() {
       } catch {
         localStorage.removeItem("token");
       }
+    } else {
+      localStorage.removeItem("token");
+      setSessionExpired(true);
+      setIsAuthenticated(false);
     }
-  }, []);
+  }
+
+
+}, []);
 
   const handleLogin = (payload) => {
     setIsAuthenticated(true);
@@ -57,11 +70,18 @@ function App() {
     }
 
     return (
-      <Login
-        onLogin={handleLogin}
-        onMostrarRegistro={() => setMostrarRegistro(true)}
-        onMostrarRecuperar={() => setMostrarRecuperar(true)}
-      />
+      <>
+        {sessionExpired && yaInicioSesionAntes && (
+          <div className="mensaje-expiracion">
+            🔒 Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.
+          </div>
+        )}
+        <Login
+          onLogin={handleLogin}
+          onMostrarRegistro={() => setMostrarRegistro(true)}
+          onMostrarRecuperar={() => setMostrarRecuperar(true)}
+        />
+      </>
     );
   }
 
