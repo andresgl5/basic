@@ -22,16 +22,26 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import hashlib
 from fastapi import Body
+from dotenv import load_dotenv
+load_dotenv()
 
-SECRET_KEY = "clave-secreta-super-segura"
+
+ENCRYPTION_PASSPHRASE = os.getenv("APP_ENCRYPTION_KEY")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+if not ENCRYPTION_PASSPHRASE or not SECRET_KEY:
+    raise RuntimeError("Faltan variables de entorno: APP_ENCRYPTION_KEY o JWT_SECRET_KEY")
+
+ENCRYPTION_KEY = hashlib.sha256(ENCRYPTION_PASSPHRASE.encode()).digest()
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Clave simétrica (debes guardarla segura en un entorno real)
+# Clave simétrica (debe guardarse segura en un entorno real)
 # IMPORTANTE!!!!!  --> Esta clave no debe ponerse en el código (Ahora está porque es para el desarrollo) Lo suyo sería que fuese en una variable de entorno, o con AWS Secrets Manager, o archivo externo fuera del proyecto, etc.
-ENCRYPTION_KEY = hashlib.sha256(b"tu_clave_super_segura").digest()
+# ENCRYPTION_KEY = hashlib.sha256(b"tu_clave_super_segura").digest()
 BLOCK_SIZE = 16
 
 def cifrar(texto: str) -> str:
@@ -41,11 +51,15 @@ def cifrar(texto: str) -> str:
     return base64.b64encode(iv + ct_bytes).decode("utf-8")
 
 def descifrar(texto_cifrado: str) -> str:
-    raw = base64.b64decode(texto_cifrado)
-    iv = raw[:BLOCK_SIZE]
-    ct = raw[BLOCK_SIZE:]
-    cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC, iv)
-    return unpad(cipher.decrypt(ct), BLOCK_SIZE).decode("utf-8")
+    try:
+        raw = base64.b64decode(texto_cifrado)
+        iv = raw[:BLOCK_SIZE]
+        ct = raw[BLOCK_SIZE:]
+        cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC, iv)
+        return unpad(cipher.decrypt(ct), BLOCK_SIZE).decode("utf-8")
+    except (ValueError, KeyError):
+        raise HTTPException(status_code=400, detail="Error al descifrar")
+
 
 
 def validar_password(password):
