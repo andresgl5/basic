@@ -22,6 +22,8 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import hashlib
 from fastapi import Body
+from datetime import datetime
+import pytz
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -76,7 +78,7 @@ def verify_password(plain_password, hashed_password):
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=5))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -140,7 +142,8 @@ def escribir_log(accion: str, detalle: str, email_usuario: str = "desconocido"):
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "registro_acciones.txt")
 
-    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    zona_horaria = pytz.timezone("Europe/Madrid")
+    fecha = datetime.now(zona_horaria).strftime("%Y-%m-%d %H:%M:%S")
     with open(log_path, "a", encoding="utf-8") as f:
         f.write(f"[{fecha}] Usuario: {email_usuario} - Acción: {accion} - Detalles: {detalle}\n")
 
